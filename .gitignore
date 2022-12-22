@@ -1,0 +1,13 @@
+_temp
+.pytest_cache
+venv
+.mypy_cache
+__pycache__
+_examples
+.vscode
+*.autosave
+_old*
+src/matlab_model.slx.r2019a
+debug.log
+{*
+dig/*
