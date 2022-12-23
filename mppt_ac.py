@@ -7,17 +7,18 @@ from src.networks import DiscreteActorCriticNetwork
 from src.pv_env import History, PVEnvDiscrete
 from src.reward import RewardDeltaPower
 from src.reward import RewardDeltaPowerVoltage
-
+# READ_SENSOR_TIME = 0
 
 PV_PARAMS_PATH = os.path.join("parameters", "050_pvarray.json")
-WEATHER_PATH = os.path.join("data", "weather_sim.csv")
-CHECKPOINT_PATH = os.path.join("models", "model_real_050.tar")
+WEATHER_PATH = os.path.join("data", "weather_sim_online.csv")
+CHECKPOINT_PATH = os.path.join("models", "model_real_058.tar")
 PVARRAY_CKP_PATH = os.path.join("data", "050_pvarray_iv.json")
 LEARNING_RATE = 0.001
-ENTROPY_BETA = 0.001
+ENTROPY_BETA = 0.002
 GAMMA = 0.9
-N_STEPS = 2
+N_STEPS = 1
 BATCH_SIZE = 16
+
 
 if __name__ == "__main__":
 
@@ -60,13 +61,13 @@ if __name__ == "__main__":
     # agent.train_net(states=torch.tensor([-10, -5, -3, -2, -1, -0.1, 0, 0.1, 1, 2, 3, 5, 10]),
     #                 actions=torch.tensor([-10, -5, -3, -2, -1, -0.1, 0, 0.1, 1, 2, 3, 5, 10]),
     #                 values_target=torch.tensor([-10, -5, -3, -2, -1, -0.1, 0, 0.1, 1, 2, 3, 5, 10]))
-    agent.learn(steps=100, verbose_every=10, save_every=10)
+    agent.learn(steps=1, verbose_every=10, save_every=1000)
 
     agent.exp_train_source.play_episode()
     env.render_vs_true(po=True)
     env.render(["dv"])
     agent.plot_performance(["entropy_loss"])
-    max(env.history.dv)
-    min(env.history.dv)
-    # agent.plot_performance()
-    env.pvarray.voc
+    # max(env.history.dv)
+    # min(env.history.dv)
+    # # agent.plot_performance()
+    # env.pvarray.voc

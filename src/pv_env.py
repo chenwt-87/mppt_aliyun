@@ -89,7 +89,8 @@ class PVEnv(PVEnvBase):
         self.done = False
 
         # 随机初始化一个电压
-        v = self.v0 or np.random.randint(2, self.pvarray.voc)
+        # v = np.random.randint(2, self.pvarray.voc)
+        v = 0.75 * self.pvarray.voc
         #   self._store_step 中获取当前温度和光照， 并通过查历史数据 或者 matlab仿真，得到电流，功率，
         #   返回【v_norm,i_norm,dv】
         return self._store_step(v)
@@ -145,7 +146,7 @@ class PVEnv(PVEnvBase):
     def render_vs_true(self, po: bool = False) -> None:
         # p_real, v_real, _ = self.pvarray.get_true_mpp(self.history.g, self.history.t)
         if po:
-            p_po, v_po, _ = self.pvarray.get_po_mpp_sensor(
+            p_po, v_po, _, _ = self.pvarray.get_po_mpp_sensor(
                 self.history.g, self.history.t, v0=self.history.v[0], v_step=0.2
             )
         # plt.plot(p_real, label="P Max")
@@ -165,9 +166,10 @@ class PVEnv(PVEnvBase):
         #     logger.info(f"PO Efficiency={PVArray.mppt_eff(p_real, p_po)}")
         logger.info(f"RL Efficiency={PVArray.mppt_eff(p_po, self.history.p)}")
 
-    def _add_history(self, p, v, i, g, t) -> None:
+    def _add_history(self, p, v, v_pv, i, g, t) -> None:
         self.history.p.append(p)
         self.history.v.append(v)
+        self.history.v_pv.append(v_pv)
         self.history.i.append(i)
         self.history.g.append(g)
         self.history.t.append(t)
@@ -180,6 +182,7 @@ class PVEnv(PVEnvBase):
         if len(self.history.p) < 2:
             self.history.dp.append(0.0)
             self.history.dv.append(0.0)
+            self.history.dv_set2pv.append(0.0)
             self.history.di.append(0.0)
             self.history.deg.append(0.0)
             self.history.dp_norm.append(0.0)
@@ -187,6 +190,8 @@ class PVEnv(PVEnvBase):
         else:
             self.history.dp.append(self.history.p[-1] - self.history.p[-2])
             self.history.dv.append(self.history.v[-1] - self.history.v[-2])
+            # 计算设定电压值和组件电压值之间之差
+            self.history.dv_set2pv.append(abs(self.history.v[-1] - self.history.v_pv[-1]))
             self.history.di.append(self.history.i[-1] - self.history.i[-2])
             self.history.dp_norm.append(
                 self.history.p_norm[-1] - self.history.p_norm[-2]
@@ -224,8 +229,8 @@ class PVEnv(PVEnvBase):
     def _store_step(self, v: float) -> np.ndarray:
         g, t = self.weather[["Irradiance", "Temperature"]].iloc[self.step_idx]
         # g, t = 1000, 25
-        p, self.v, i = self.pvarray.simulate(v, g, t)
-        self._add_history(p=p, v=self.v, i=i, g=g, t=t)
+        p, self.v, self.v_pv, i = self.pvarray.simulate(v, g, t)
+        self._add_history(p=p, v=self.v, v_pv=self.v_pv, i=i, g=g, t=t)
 
         # getattr(handler.request, 'GET') is the same as handler.request.GET
         # print('test  g,t,v',   np.array([getattr(self.history, state)[-1] for state in self.states]))

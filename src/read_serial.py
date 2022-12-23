@@ -1,11 +1,18 @@
 import serial  # 导入串口包
 import time  # 导入时间包
+# from src.pv_array import *
+# READ_SENSOR_TIME = 0
 
 
-def read_serial_data_sim():
-    voltage_in = 19241
+def read_serial_data_sim(i):
+    v_list = [25000, 23981, 24415, 19241]
+    i_list = [750, 78, 154, 212.5]
+    # print((i % 800) % 200)
+
+    voltage_in = v_list[int((i % 800) / 200)]
     voltage_out = 14500
-    current_in = 212.5
+    current_in = i_list[int((i % 800) / 200)]
+
     return voltage_in, voltage_out, current_in
 
 
@@ -34,7 +41,9 @@ def read_serial_data():
 
 
 if __name__ == '__main__':
-    v_in, v_out, I_in = read_serial_data()
+    # v_in, v_out, I_in = read_serial_data()
+
+    v_in, v_out, I_in = read_serial_data_sim(1)
     print('voltage_in', v_in)
     print('voltage_out', v_out)
     print('current_in', I_in)

@@ -21,7 +21,10 @@ from src.utils import read_weather_csv
 from src.read_serial import read_serial_data
 from src.read_serial import read_serial_data_sim
 
-PVSimResult = namedtuple("PVSimResult", ["power", "voltage", "current"])
+# from mppt_ac import READ_SENSOR_TIME
+
+PVSimResult = namedtuple("PVSimResult", ["power", "voltage", "voltage_pv", "current"])
+
 
 
 class PVArray:
@@ -43,6 +46,7 @@ class PVArray:
         self.float_precision = f_precision
         # self._model_path = os.path.join("src", "matlab_model_050")
         self.ckp_path = ckp_path
+        self.READ_SENSOR_TIME = 0
 
         # if new_engine:
         #     self._eng = matlab.engine.start_matlab()
@@ -77,6 +81,9 @@ class PVArray:
         t = round(cell_temp, self.float_precision)
 
         key = f"{v},{g},{t}"
+        if key == '24.98,200,17':
+
+            print(key)
         if 0 and self.hist[key]:
             # 从历史数据中读取
             result = PVSimResult(*self.hist[key])
@@ -84,6 +91,7 @@ class PVArray:
             # matlab 仿真
             # result = self._simulate(v, g, t)
             result = self._read_sensor(v)
+            self.READ_SENSOR_TIME += 1
             self.hist[key] = result
             self._save_history(verbose=False)
 
@@ -110,6 +118,9 @@ class PVArray:
 
         key = f"{v},{g},{t}"
         result = self._read_sensor_po(v)
+        self.READ_SENSOR_TIME += 1
+        print('self.READ_SENSOR_TIME', self.READ_SENSOR_TIME)
+
         self.hist[key] = result
         self._save_history(verbose=False)
 
@@ -241,7 +252,7 @@ class PVArray:
             pv_currents.append(sim_result.current)
             pv_voltages.append(sim_result.voltage)
 
-        return PVSimResult(pv_powers[1:], pv_voltages[1:-1], pv_currents)
+        return PVSimResult(pv_powers[1:], pv_voltages[1:-1], pv_voltages[1:-1], pv_currents)
 
     def _init(self) -> None:
         "Load the model and initialize it"
@@ -326,17 +337,18 @@ class PVArray:
         # 一直读取，直到调整到Agent设定的电压值，读取此时的电压，电流，功率
         flag = False
         for i in range(1):
-            pv_voltage, buck_voltage, pv_current = read_serial_data_sim()
-            print("voltage_set - pv_voltage = {} - {} = {} ".format(voltage_set*1000,
-                                                                    pv_voltage,
-                                                                    abs(voltage_set*1000-pv_voltage)))
+            pv_voltage, buck_voltage, pv_current = read_serial_data_sim(self.READ_SENSOR_TIME)
+
+            print("第{}轮  voltage_set - pv_voltage = {} - {} = {} ".format(self.READ_SENSOR_TIME, voltage_set * 1000,
+                                                                          pv_voltage,
+                                                                          abs(voltage_set * 1000 - pv_voltage)))
             list_pv_voltage.append(pv_voltage)
             list_pv_current.append(pv_current)
-            if abs(voltage_set*1000-pv_voltage) < 300:
+            if abs(voltage_set * 1000 - pv_voltage) < 300:
                 flag = True
                 break
-            # pv_voltage = np.mean(list_pv_voltage)
-            pv_voltage = voltage_set*1000
+            pv_voltage = np.mean(list_pv_voltage)
+            # pv_voltage = voltage_set*1000
             pv_current = np.mean(list_pv_current)
 
         pv_voltage = pv_voltage / 1000
@@ -349,12 +361,14 @@ class PVArray:
 
         return PVSimResult(
             round(pv_power, self.float_precision),
+            round(voltage_set, self.float_precision),
             round(pv_voltage, self.float_precision),
             round(pv_current, self.float_precision),
         )
 
     def _read_sensor_po(self, voltage_set) -> PVSimResult:
-        pv_voltage, buck_voltage, pv_current = read_serial_data_sim()
+        pv_voltage, buck_voltage, pv_current = read_serial_data_sim(self.READ_SENSOR_TIME)
+        # READ_SENSOR_TIME = READ_SENSOR_TIME + 1
         pv_voltage = pv_voltage / 1000
         pv_current = pv_current / 1000
 
@@ -363,6 +377,7 @@ class PVArray:
 
         return PVSimResult(
             round(pv_power, self.float_precision),
+            round(pv_voltage, self.float_precision),
             round(pv_voltage, self.float_precision),
             round(pv_current, self.float_precision),
         )

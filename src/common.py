@@ -12,9 +12,11 @@ class History:
     t: list = field(default_factory=list)  # 温度
     p: list = field(default_factory=list)  # 功率
     v: list = field(default_factory=list)  # 电压
+    v_pv: list = field(default_factory=list)  # 组件电压
     i: list = field(default_factory=list)  # 电流
     dp: list = field(default_factory=list)  # dp = p[t] - p[t-1]
     dv: list = field(default_factory=list)
+    dv_set2pv: list = field(default_factory=list)  # dv_set2pv = v - v_pv
     di: list = field(default_factory=list)
     g_norm: list = field(default_factory=list)  # g_norm = g / G_MAX
     t_norm: list = field(default_factory=list)  # t_norm = t / T_MAX
