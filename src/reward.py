@@ -112,15 +112,15 @@ class RewardDeltaPowerVoltage:
         self.c = abs(c)
 
     def __call__(self, history: History) -> float:
-        # dp = history.dp[-1]
-        # print('dpppppp', dp)
-        # dp = 0
-        # diff_v = history.dv_set2pv[-1]
-        # if dp < 0:
-        #     return self.a * dp - self.c * abs(diff_v)
-        # else:
-        #     return 300 - self.b * dp * 0 - 1000 * self.c * abs(diff_v)
-        return history.p[-1]
+        dp = history.dp[-1]
+        print('dpppppp', dp)
+        dp = 0
+        diff_v = history.dv_set2pv[-1]
+        if dp < 0:
+            return self.a * dp - self.c * abs(diff_v)
+        else:
+            return 300 - self.b * dp * 0 - 1000 * self.c * abs(diff_v) + 100 * history.p[-1]
+        # return history.p[-1]
 
 
 if __name__ == "__main__":

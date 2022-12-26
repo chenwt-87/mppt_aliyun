@@ -11,7 +11,7 @@ from src.reward import RewardDeltaPowerVoltage
 
 PV_PARAMS_PATH = os.path.join("parameters", "050_pvarray.json")
 WEATHER_PATH = os.path.join("data", "weather_sim_online.csv")
-CHECKPOINT_PATH = os.path.join("models", "model_real_058.tar")
+CHECKPOINT_PATH = os.path.join("models", "model_real_063.tar")
 PVARRAY_CKP_PATH = os.path.join("data", "050_pvarray_iv.json")
 LEARNING_RATE = 0.001
 ENTROPY_BETA = 0.002
@@ -27,7 +27,7 @@ if __name__ == "__main__":
         WEATHER_PATH,
         # states=["v_norm", "i_norm", "deg"],
         pvarray_ckp_path=PVARRAY_CKP_PATH,
-        states=["v_norm", "i_norm", "dv"],
+        states=["v_norm", "i_norm", "dv_set2pv"],
         reward_fn=RewardDeltaPowerVoltage(2, 0.9, 1),
         actions=[-10, -5, -3, -2, -1, -0.1, 0, 0.1, 1, 2, 3, 5, 10],
     )
@@ -36,7 +36,7 @@ if __name__ == "__main__":
         WEATHER_PATH,
         # states=["v_norm", "i_norm", "deg"],
         pvarray_ckp_path=PVARRAY_CKP_PATH,
-        states=["v_norm", "i_norm", "dv"],
+        states=["v_norm", "i_norm", "dv_set2pv"],
         reward_fn=RewardDeltaPowerVoltage(2, 0.9, 1),
         actions=[-10, -5, -3, -2, -1, -0.1, 0, 0.1, 1, 2, 3, 5, 10],
     )
@@ -61,13 +61,10 @@ if __name__ == "__main__":
     # agent.train_net(states=torch.tensor([-10, -5, -3, -2, -1, -0.1, 0, 0.1, 1, 2, 3, 5, 10]),
     #                 actions=torch.tensor([-10, -5, -3, -2, -1, -0.1, 0, 0.1, 1, 2, 3, 5, 10]),
     #                 values_target=torch.tensor([-10, -5, -3, -2, -1, -0.1, 0, 0.1, 1, 2, 3, 5, 10]))
-    agent.learn(steps=1, verbose_every=10, save_every=1000)
+    # agent.learn(steps=50000, verbose_every=10, save_every=1000)
 
     agent.exp_train_source.play_episode()
     env.render_vs_true(po=True)
     env.render(["dv"])
     agent.plot_performance(["entropy_loss"])
-    # max(env.history.dv)
-    # min(env.history.dv)
-    # # agent.plot_performance()
-    # env.pvarray.voc
+

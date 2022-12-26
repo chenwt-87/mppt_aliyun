@@ -128,8 +128,8 @@ class ExperienceSorceDiscountedSteps(ExperienceSorceDiscounted):
         env: gym.Env,
         policy: BasePolicy,
         gamma: float,
-        n_steps: int,
-        steps: int,
+        n_steps: int,  # 训练次数
+        steps: int,  # batch
     ):
         super().__init__(env, policy, gamma, n_steps)
 

@@ -91,10 +91,10 @@ class PVArray:
             # matlab 仿真
             # result = self._simulate(v, g, t)
             result = self._read_sensor(v)
-            self.READ_SENSOR_TIME += 1
+            # self.READ_SENSOR_TIME += 1
             self.hist[key] = result
             self._save_history(verbose=False)
-
+        self.READ_SENSOR_TIME += 1
         return result
 
     # 用于读取p&o的电气量

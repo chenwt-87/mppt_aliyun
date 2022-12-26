@@ -93,7 +93,10 @@ class PVEnv(PVEnvBase):
         v = 0.75 * self.pvarray.voc
         #   self._store_step 中获取当前温度和光照， 并通过查历史数据 或者 matlab仿真，得到电流，功率，
         #   返回【v_norm,i_norm,dv】
-        return self._store_step(v)
+        obs0 = self._store_step(v)
+        print('obs0   reset', obs0)
+        self.pvarray.READ_SENSOR_TIME -= 1
+        return obs0
 
     #  experience.py 37 行， 调用该函数   new_obs, reward, done, _ = self.env.step(action)
     def step(self, action: float) -> StepResult:
