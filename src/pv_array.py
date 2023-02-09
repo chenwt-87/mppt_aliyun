@@ -16,7 +16,6 @@ from typing import Optional
 
 from src import utils
 from src.logger import logger
-from src.matlab_api import set_parameters
 from src.utils import read_weather_csv
 from src.read_serial import read_serial_data
 from src.read_serial import read_serial_data_sim
@@ -24,7 +23,6 @@ from src.read_serial import read_serial_data_sim
 # from mppt_ac import READ_SENSOR_TIME
 
 PVSimResult = namedtuple("PVSimResult", ["power", "voltage", "voltage_pv", "current"])
-
 
 
 class PVArray:
@@ -389,6 +387,9 @@ class PVArray:
     @staticmethod
     def mppt_eff(p_real: List[float], p: List[float]) -> float:
         return sum([p1 / p2 for p1, p2 in zip(p, p_real)]) * 100 / len(p_real)
+
+    def mppt_mae(v_real: List[float], v: List[float]) -> float:
+        return sum([abs(v1-v2) for v1, v2 in zip(v, v_real)]) / len(v_real)
 
     @property
     def voc(self) -> float:

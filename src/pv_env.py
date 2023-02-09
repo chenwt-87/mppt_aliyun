@@ -167,7 +167,8 @@ class PVEnv(PVEnvBase):
 
         # if po:
         #     logger.info(f"PO Efficiency={PVArray.mppt_eff(p_real, p_po)}")
-        logger.info(f"RL Efficiency={PVArray.mppt_eff(p_po, self.history.p)}")
+        logger.info(f"RL P_  Efficiency={PVArray.mppt_eff(p_po, self.history.p)}")
+        logger.info(f"RL V_ Efficiency={PVArray.mppt_mae(v_po, self.history.v)}")
 
     def _add_history(self, p, v, v_pv, i, g, t) -> None:
         self.history.p.append(p)
