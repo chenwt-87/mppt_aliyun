@@ -16,6 +16,13 @@ def read_weather_csv(path: str) -> pd.DataFrame:
     return df
 
 
+def read_his_data_csv(path: str) -> pd.DataFrame:
+    "Read a csv file and returns a DataFrame object"
+    logger.info(f"Reading {path} . . .")
+    df = pd.read_csv(path, index_col=0)
+    return df
+
+
 def clip_num(value: float, minimum: float = -np.inf, maximum: float = np.inf) -> float:
     "Clip the value between minimum and maximum parameters"
     return min(max(value, minimum), maximum)

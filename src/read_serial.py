@@ -1,5 +1,6 @@
 import serial  # 导入串口包
 import time  # 导入时间包
+import pandas as pd
 # from src.pv_array import *
 # READ_SENSOR_TIME = 0
 
@@ -14,6 +15,10 @@ def read_serial_data_sim(i):
     current_in = i_list[int((i % 800) / 200)]
 
     return voltage_in, voltage_out, current_in
+
+
+def read_csv_data():
+    data = pd.read_csv('../data/data_for_train_A2C.csv')
 
 
 def read_serial_data():

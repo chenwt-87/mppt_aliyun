@@ -127,8 +127,9 @@ class Agent(AgentABC):
             batch = self._prepare_batch()
             # batch [obs,action, reward]
             # reward 为 target_values,
-            print('test_batch', batch)
+            # print('test_batch', batch)
             # 送16组数据进行训练 ，BATCH_SIZE=16
+            # agent.py line 352
             self.train_net(*batch)
 
             if verbose_every:

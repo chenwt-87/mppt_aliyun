@@ -30,8 +30,8 @@ class PVArray:
             self,
             params: Dict,
             ckp_path: str,
+            data_from_gateway_path: str,
             f_precision: int = 2,
-            new_engine: bool = True,
     ):
         """PV Array Model, interface between MATLAB and Python
 
@@ -39,18 +39,12 @@ class PVArray:
             model_params: dictionary with the parameters
             float_precision: decimal places used by the model (for cache)
         """
-        logger.info("Starting MATLAB engine . . .")
         self._params = params
         self.float_precision = f_precision
         # self._model_path = os.path.join("src", "matlab_model_050")
         self.ckp_path = ckp_path
         self.READ_SENSOR_TIME = 0
-
-        # if new_engine:
-        #     self._eng = matlab.engine.start_matlab()
-        # else:
-        #     self._eng = matlab.engine.connect_matlab()
-        # logger.info("MATLAB engine initializated.")
+        self.data_from_gateway_path = data_from_gateway_path
 
         self._init()
         self._init_history()
@@ -61,34 +55,30 @@ class PVArray:
         )
 
     def simulate(
-            self, voltage: float, irradiance: float, cell_temp: float
+            self, voltage_set: float, current_in: float, pv_voltage: float, pv_current: float
     ) -> PVSimResult:
         """
         Simulate the simulink model
 
         Params:
-            voltage: load voltage [V]
-            irradiance: solar irradiance [W/m^2]
-            temperature: cell temperature [celsius]
+            pv_voltage:  voltage [V]
+            pv_current: current [I]
         """
-        if isinstance(voltage, np.ndarray):
-            voltage = voltage[0]
+        if isinstance(pv_voltage, np.ndarray):
+            pv_voltage = pv_voltage[0]
 
-        v = round(voltage, self.float_precision)
-        g = round(irradiance, self.float_precision)
-        t = round(cell_temp, self.float_precision)
-
-        key = f"{v},{g},{t}"
-        if key == '24.98,200,17':
-
+        pv_v = round(pv_voltage, self.float_precision)
+        pv_i = round(pv_current, self.float_precision)
+        set_v = round(voltage_set, self.float_precision)
+        now_i = round(current_in, self.float_precision)
+        key = f"{pv_v},{pv_i}"
+        if key == '24.98,1':
             print(key)
         if 0 and self.hist[key]:
             # 从历史数据中读取
             result = PVSimResult(*self.hist[key])
         else:
-            # matlab 仿真
-            # result = self._simulate(v, g, t)
-            result = self._read_sensor(v)
+            result = self._read_gateway_his_data(pv_v, pv_i, set_v, now_i)
             # self.READ_SENSOR_TIME += 1
             self.hist[key] = result
             self._save_history(verbose=False)
@@ -289,46 +279,43 @@ class PVArray:
 
         return PVSimResult(p, v, i)
 
-    def _set_cell_temp(self, cell_temp: float) -> None:
-        "Auxiliar function for setting the cell temperature on the Simulink model"
-        set_parameters(
-            self._eng, [self.model_name, "Cell Temperature"], {"Value": str(cell_temp)}
-        )
+    def _read_sensor(self, voltage_set) -> PVSimResult:
+        pv_voltage = 0
+        list_pv_voltage = []
+        list_pv_current = []
+        # 一直读取，直到调整到Agent设定的电压值，读取此时的电压，电流，功率
+        flag = False
+        for i in range(1):
+            pv_voltage, buck_voltage, pv_current = read_serial_data_sim(self.READ_SENSOR_TIME)
 
-    def _set_irradiance(self, irradiance: float) -> None:
-        "Auxiliar function for setting the irradiance on the Simulink model"
-        set_parameters(
-            self._eng, [self.model_name, "Irradiance"], {"Value": str(irradiance)}
-        )
+            print("第{}轮  voltage_set - pv_voltage = {} - {} = {} ".format(self.READ_SENSOR_TIME, voltage_set * 1000,
+                                                                          pv_voltage,
+                                                                          abs(voltage_set * 1000 - pv_voltage)))
+            list_pv_voltage.append(pv_voltage)
+            list_pv_current.append(pv_current)
+            if abs(voltage_set * 1000 - pv_voltage) < 300:
+                flag = True
+                break
+            pv_voltage = np.mean(list_pv_voltage)
+            # pv_voltage = voltage_set*1000
+            pv_current = np.mean(list_pv_current)
 
-    def _set_voltage(self, voltage: float) -> None:
-        "Auxiliar function for setting the load voltage source on the Simulink model"
-        set_parameters(
-            self._eng,
-            [self.model_name, "Variable DC Source", "Load Voltage"],
-            {"Value": str(voltage)},
-        )
-
-    def _simulate(
-            self, voltage: float, irradiance: float, cell_temp: float
-    ) -> PVSimResult:
-        "Cached simulate function"
-        self._set_voltage(voltage)
-        self._set_irradiance(irradiance)
-        self._set_cell_temp(cell_temp)
-        self._start_simulation()
-
-        pv_power = self._eng.eval("P(end);", nargout=1)
-        pv_voltage = self._eng.eval("V(end);", nargout=1)
-        pv_current = self._eng.eval("I(end);", nargout=1)
+        pv_voltage = pv_voltage / 1000
+        pv_current = pv_current / 1000
+        if flag:
+            pv_power = pv_voltage * pv_current
+        else:
+            pv_power = 0
+        print('U:{} V , I:{} A, P:{} W'.format(pv_voltage, pv_current, pv_power))
 
         return PVSimResult(
             round(pv_power, self.float_precision),
+            round(voltage_set, self.float_precision),
             round(pv_voltage, self.float_precision),
             round(pv_current, self.float_precision),
         )
 
-    def _read_sensor(self, voltage_set) -> PVSimResult:
+    def _read_sensor_data_set(self, voltage_set) -> PVSimResult:
         pv_voltage = 0
         list_pv_voltage = []
         list_pv_current = []
@@ -380,16 +367,26 @@ class PVArray:
             round(pv_current, self.float_precision),
         )
 
-    def _start_simulation(self) -> None:
-        "Start the simulation command"
-        set_parameters(self._eng, self.model_name, {"SimulationCommand": "start"})
+    def _read_gateway_his_data(self, pv_voltage, pv_current, voltage_set, current_now) -> PVSimResult:
+        if abs(voltage_set * 1000 - pv_voltage) < 300 and abs(current_now * 1000 - pv_current) < 100:
+            pv_power = pv_voltage * pv_current
+        else:
+            pv_power = 0
+        print('U:{} V , I:{} A, P:{} W'.format(pv_voltage, pv_current, pv_power))
+
+        return PVSimResult(
+            round(pv_power, self.float_precision),
+            round(voltage_set, self.float_precision),
+            round(pv_voltage, self.float_precision),
+            round(pv_current, self.float_precision),
+        )
 
     @staticmethod
     def mppt_eff(p_real: List[float], p: List[float]) -> float:
         return sum([p1 / p2 for p1, p2 in zip(p, p_real)]) * 100 / len(p_real)
 
     def mppt_mae(v_real: List[float], v: List[float]) -> float:
-        return sum([abs(v1-v2) for v1, v2 in zip(v, v_real)]) / len(v_real)
+        return sum([abs(v1 - v2) for v1, v2 in zip(v, v_real)]) / len(v_real)
 
     @property
     def voc(self) -> float:
@@ -419,13 +416,13 @@ class PVArray:
     @classmethod
     def from_json(cls, path: str, **kwargs):
         "Create a PV Array from a json file containing a string with the parameters"
-        return cls(params=utils.load_dict(path), **kwargs)
+        pv_panel = cls(params=utils.load_dict(path), **kwargs)
+        return pv_panel
 
 
 if __name__ == "__main__":
     pvarray = PVArray.from_json(
         os.path.join("parameters", "01_pvarray.json"),
-        new_engine=False,
         ckp_path=os.path.join("data", "01_pvarray_iv.json"),
     )
     weather = read_weather_csv(os.path.join("data", "weather_sim.csv"))

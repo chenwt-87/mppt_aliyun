@@ -31,6 +31,7 @@ class ExperienceSorce:
             self.done = False
         # obs =  ['v_norm', 'i_norm', 'dv']
         obs = self.obs
+
         # 基于obs，计算当前状态，进入到网络结构  转入policies.py line 46 行
         action = self.policy(obs)
         # 基于action 【int】，选择电压增量，计算新的状态和 reward , 调用  pv_env.py  line 97 的 step(函数)
@@ -87,8 +88,37 @@ class ExperienceSorceDiscounted(ExperienceSorce):
 
         for step_idx in range(self.max_steps):
             # 【state， action， reward， last_state】
+
+            self.env.step_counter += 1
+            for act in range(6):
+                exp = self.play_step()
+                # print('依据网络计,', exp, step_idx)
+                reward += exp.reward
+                discounted_reward += exp.reward * self.gamma ** (step_idx)
+                history.append(exp)
+
+            if exp.last_state is None:
+                break
+
+        return ExperienceDiscounted(
+            state=history[0].state,
+            action=history[0].action,
+            last_state=history[-1].last_state,
+            reward=reward,
+            discounted_reward=discounted_reward,
+            steps=step_idx + 1,
+        )
+
+    def play_n_steps_pred(self):
+        history = []
+        discounted_reward = 0.0
+        reward = 0.0
+
+        for step_idx in range(self.max_steps):
+
+            self.env.step_counter += 1
             exp = self.play_step()
-            print('依据网络计,', exp, step_idx)
+            # print('依据网络计,', exp, step_idx)
             reward += exp.reward
             discounted_reward += exp.reward * self.gamma ** (step_idx)
             history.append(exp)
@@ -111,11 +141,7 @@ class ExperienceSorceDiscounted(ExperienceSorce):
         iter_num = 0
         while True:
             iter_num += 1
-            experience = self.play_n_steps()
-            # Experience(state=array([0.9118541 , 0.13897686, 0.        ]),
-            # action=6, reward=0.0,
-            # last_state=array([0.9118541 , 0.13897686, 0.        ]),
-            # discounted_reward=0.0, steps=1)
+            experience = self.play_n_steps_pred()
             ep_history.append(experience)
             print('计算次数', iter_num)
             if experience.last_state is None:

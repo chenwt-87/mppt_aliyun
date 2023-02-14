@@ -1,3 +1,5 @@
+import random
+
 import gym
 import pandas as pd
 from typing import Optional, List
@@ -7,7 +9,7 @@ import matplotlib.pyplot as plt
 from math import atan2
 
 from src.pv_array import PVArray
-from src.utils import read_weather_csv
+from src.utils import read_his_data_csv
 from src.common import StepResult, History
 from src.logger import logger
 
@@ -42,11 +44,13 @@ class PVEnvBase(gym.Env):
 
     @classmethod
     def from_file(
-            cls, pv_params_path: str, weather_path: str, pvarray_ckp_path: str, **kwargs
+            cls, pv_params_path: str, his_data_path: str, pvarray_ckp_path: str, **kwargs
     ):
-        pvarray = PVArray.from_json(pv_params_path, ckp_path=pvarray_ckp_path)
-        weather = read_weather_csv(weather_path)
-        return cls(pvarray, weather, **kwargs)
+        pvarray = PVArray.from_json(pv_params_path, ckp_path=pvarray_ckp_path, data_from_gateway_path=his_data_path)
+        his_data = read_his_data_csv(his_data_path)
+        his_data['power'] = his_data.apply(lambda x: x['voltage']*x['current']/1e6, axis=1)
+        pv_environment = cls(pvarray, his_data, **kwargs)
+        return pv_environment
 
 
 class PVEnv(PVEnvBase):
@@ -64,7 +68,7 @@ class PVEnv(PVEnvBase):
     def __init__(
             self,
             pvarray: PVArray,
-            weather_df: pd.DataFrame,
+            pv_history_data: pd.DataFrame,
             states: List[str],
             reward_fn: callable,
             seed: Optional[int] = None,
@@ -72,8 +76,8 @@ class PVEnv(PVEnvBase):
     ) -> None:
 
         self.pvarray = pvarray
-        self.weather = weather_df
         self.states = states
+        self.pv_gateway_history = pv_history_data
         self.reward_fn = reward_fn
         self.v0 = v0
         if seed:
@@ -87,13 +91,16 @@ class PVEnv(PVEnvBase):
         self.step_counter = 0
         self.step_idx = 0
         self.done = False
-
+        idx = random.randint(0, self.pv_gateway_history.shape[0])
+        pv_v = self.pv_gateway_history.at[idx, 'voltage'] / 1000
+        pv_i = self.pv_gateway_history.at[idx, 'current'] / 1000
         # 随机初始化一个电压
         # v = np.random.randint(2, self.pvarray.voc)
         v = 0.75 * self.pvarray.voc
+        i = 0.8 * self.pvarray.isc
         #   self._store_step 中获取当前温度和光照， 并通过查历史数据 或者 matlab仿真，得到电流，功率，
         #   返回【v_norm,i_norm,dv】
-        obs0 = self._store_step(v)
+        obs0 = self._store_step(v, i, pv_v, pv_i)
         print('obs0   reset', obs0)
         self.pvarray.READ_SENSOR_TIME -= 1
         return obs0
@@ -104,17 +111,21 @@ class PVEnv(PVEnvBase):
             raise ValueError("The episode is done")
 
         self.step_idx += 1
-        self.step_counter += 1
+        print('self.step_counter', self.step_counter)
+        pv_v = self.pv_gateway_history.at[self.step_counter, 'voltage'] / 1000
+        pv_i = self.pv_gateway_history.at[self.step_counter, 'current'] / 1000
         # 依据 action 选择电压的增量，
         # delta_v = self.actions[action]
         # actions=[-10, -5, -3, -2, -1, -0.1, 0, 0.1, 1, 2, 3, 5, 10]
+        # for k in range(5):
         delta_v = self._get_delta_v(action)
         # clip 函数， 将v+delta_v 限制在 0 和 Voc 之间
-        print('\n self.v={},delta_v={}, action={}'.format(self.v, delta_v, action))
+        print('\n ======= self.v={},delta_v={}, action={}, pv_panel_v:{} pv_panel_i: {}'.format(
+            self.v, delta_v, action, pv_v, pv_i))
         v = np.clip(self.v + delta_v,  0.5 * self.pvarray.voc, self.pvarray.voc)
         # 依据 v， 通过历史数据或者matlab仿真，得到 obs
         # self.history() 赋值
-        obs = self._store_step(v)
+        obs = self._store_step(v, self.i, pv_v, pv_i)
         #  obs ['v_norm', 'i_norm', 'dv']
         # print('test_obs', obs)
 
@@ -127,7 +138,7 @@ class PVEnv(PVEnvBase):
 
         # if self.history.p[-1] < 0 or self.history.v[-1] < 1:
         #     self.done = True
-        if self.step_counter >= len(self.weather) - 1:
+        if self.step_counter >= len(self.pv_gateway_history) - 1:
             self.done = True
 
         return StepResult(
@@ -149,9 +160,7 @@ class PVEnv(PVEnvBase):
     def render_vs_true(self, po: bool = False) -> None:
         # p_real, v_real, _ = self.pvarray.get_true_mpp(self.history.g, self.history.t)
         if po:
-            p_po, v_po, _, _ = self.pvarray.get_po_mpp_sensor(
-                self.history.g, self.history.t, v0=self.history.v[0], v_step=0.2
-            )
+            p_po, v_po = self.pv_gateway_history['power'], self.pv_gateway_history['voltage']/1e3
         # plt.plot(p_real, label="P Max")
         plt.plot(self.history.p, label="P RL")
         if po:
@@ -170,18 +179,19 @@ class PVEnv(PVEnvBase):
         logger.info(f"RL P_  Efficiency={PVArray.mppt_eff(p_po, self.history.p)}")
         logger.info(f"RL V_ Efficiency={PVArray.mppt_mae(v_po, self.history.v)}")
 
-    def _add_history(self, p, v, v_pv, i, g, t) -> None:
+    def _add_history(self, p, v, v_pv, i) -> None:
         self.history.p.append(p)
         self.history.v.append(v)
         self.history.v_pv.append(v_pv)
         self.history.i.append(i)
-        self.history.g.append(g)
-        self.history.t.append(t)
+        # 无法获取气温和辐照，历史数据中不再存储之。
+        # self.history.g.append(g)
+        # self.history.t.append(t)
         self.history.p_norm.append(p / self.pvarray.pmax)
         self.history.v_norm.append(v / self.pvarray.voc)
         self.history.i_norm.append(i / self.pvarray.isc)
-        self.history.g_norm.append(g / G_MAX)
-        self.history.t_norm.append(t / T_MAX)
+        # self.history.g_norm.append(g / G_MAX)
+        # self.history.t_norm.append(t / T_MAX)
 
         if len(self.history.p) < 2:
             self.history.dp.append(0.0)
@@ -230,11 +240,13 @@ class PVEnv(PVEnvBase):
             dtype=np.float32,
         )
 
-    def _store_step(self, v: float) -> np.ndarray:
-        g, t = self.weather[["Irradiance", "Temperature"]].iloc[self.step_idx]
+    def _store_step(self, v: float, i: float, p_v: float, p_i: float) -> np.ndarray:
         # g, t = 1000, 25
-        p, self.v, self.v_pv, i = self.pvarray.simulate(v, g, t)
-        self._add_history(p=p, v=self.v, v_pv=self.v_pv, i=i, g=g, t=t)
+        # 从串口 或者 zigbee 获取数
+        # v 为Actor输出的电压
+        p, self.v, self.v_pv, = self.pvarray.simulate(v, i, p_v, p_i)
+        # 组件 实际的电压v_pv
+        self._add_history(p=p, v=self.v, v_pv=self.v_pv, i=i)
 
         # getattr(handler.request, 'GET') is the same as handler.request.GET
         # print('test  g,t,v',   np.array([getattr(self.history, state)[-1] for state in self.states]))
@@ -247,7 +259,7 @@ class PVEnvDiscrete(PVEnv):
 
     Parameters:
         - pvarray: the pvarray object
-        - weather_df: a pandas dataframe object containing weather readings
+        - his_data_df: a pandas dataframe object from INC_MPPT, which is supposed to be the true MPP
         - states: list of states to return as observations
         - reward_fn: function that calculates the reward
         - seed: for reproducibility
@@ -256,7 +268,7 @@ class PVEnvDiscrete(PVEnv):
     def __init__(
             self,
             pvarray: PVArray,
-            weather_df: pd.DataFrame,
+            his_data_df: pd.DataFrame,
             states: List[str],
             reward_fn: callable,
             actions: List[float],
@@ -266,7 +278,7 @@ class PVEnvDiscrete(PVEnv):
         self.actions = actions
         super().__init__(
             pvarray,
-            weather_df,
+            his_data_df,
             states,
             reward_fn,
             seed,
@@ -294,9 +306,9 @@ if __name__ == "__main__":
 
 
     env = PVEnvDiscrete.from_file(
-        pv_params_path=os.path.join("parameters", "01_pvarray.json"),
-        weather_path=os.path.join("data", "weather_sim.csv"),
-        pvarray_ckp_path=os.path.join("data", "01_pvarray_iv.json"),
+        pv_params_path=os.path.join("../parameters", "01_pvarray.json"),
+        his_data_path=os.path.join("../data", "data_for_train_A2C.csv"),
+        pvarray_ckp_path=os.path.join("../data", "01_pvarray_iv.json"),
         states=["v", "p", "g", "t"],
         reward_fn=reward_fn,
         actions=[-0.1, 0, 0.1],
