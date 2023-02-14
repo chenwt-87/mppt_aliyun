@@ -10,7 +10,7 @@ from src.reward import RewardDeltaPowerVoltage
 # READ_SENSOR_TIME = 0
 
 PV_PARAMS_PATH = os.path.join("parameters", "050_pvarray.json")
-CHECKPOINT_PATH = os.path.join("models", "model_real_089.tar")
+CHECKPOINT_PATH = os.path.join("models", "model_real_189.tar")
 PVARRAY_CKP_PATH = os.path.join("data", "050_pvarray_iv.json")
 HiS_DATA_PATH = os.path.join("data", "data_for_train_A2C.csv")
 LEARNING_RATE = 0.001
@@ -56,7 +56,7 @@ if __name__ == "__main__":
     )
 
     # 训练模型
-    agent.learn(steps=1000, verbose_every=10, save_every=1000)
+    agent.learn(steps=10000, verbose_every=10, save_every=1000)
 
     agent.exp_train_source.play_episode()
     env.render_vs_true(po=True)

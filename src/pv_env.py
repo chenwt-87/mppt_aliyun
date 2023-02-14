@@ -117,12 +117,12 @@ class PVEnv(PVEnvBase):
         # 依据 action 选择电压的增量，
         # delta_v = self.actions[action]
         # actions=[-10, -5, -3, -2, -1, -0.1, 0, 0.1, 1, 2, 3, 5, 10]
-        # for k in range(5):
         delta_v = self._get_delta_v(action)
         # clip 函数， 将v+delta_v 限制在 0 和 Voc 之间
         print('\n ======= self.v={},delta_v={}, action={}, pv_panel_v:{} pv_panel_i: {}'.format(
             self.v, delta_v, action, pv_v, pv_i))
         v = np.clip(self.v + delta_v,  0.5 * self.pvarray.voc, self.pvarray.voc)
+        print(self.i)
         # 依据 v， 通过历史数据或者matlab仿真，得到 obs
         # self.history() 赋值
         obs = self._store_step(v, self.i, pv_v, pv_i)
@@ -244,7 +244,7 @@ class PVEnv(PVEnvBase):
         # g, t = 1000, 25
         # 从串口 或者 zigbee 获取数
         # v 为Actor输出的电压
-        p, self.v, self.v_pv, = self.pvarray.simulate(v, i, p_v, p_i)
+        p, self.v, self.v_pv, i2 = self.pvarray.simulate(v, i, p_v, p_i)
         # 组件 实际的电压v_pv
         self._add_history(p=p, v=self.v, v_pv=self.v_pv, i=i)
 
