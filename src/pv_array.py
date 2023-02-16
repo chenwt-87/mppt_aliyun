@@ -306,7 +306,8 @@ class PVArray:
             pv_power = pv_voltage * pv_current
         else:
             pv_power = 0
-        print('U:{} V , I:{} A, P:{} W'.format(pv_voltage, pv_current, pv_power))
+        if pv_power > 0:
+            print('U:{} V , I:{} A, P:{} W'.format(pv_voltage, pv_current, pv_power))
 
         return PVSimResult(
             round(pv_power, self.float_precision),
@@ -342,7 +343,8 @@ class PVArray:
             pv_power = pv_voltage * pv_current
         else:
             pv_power = 0
-        print('U:{} V , I:{} A, P:{} W'.format(pv_voltage, pv_current, pv_power))
+        if pv_power > 0:
+             print('U:{} V , I:{} A, P:{} W'.format(pv_voltage, pv_current, pv_power))
 
         return PVSimResult(
             round(pv_power, self.float_precision),
@@ -368,11 +370,12 @@ class PVArray:
         )
 
     def _read_gateway_his_data(self, pv_voltage, pv_current, voltage_set, current_now) -> PVSimResult:
-        if abs(voltage_set * 1000 - pv_voltage) < 300 and abs(current_now * 1000 - pv_current) < 100:
+        if abs(voltage_set - pv_voltage) < 1 and abs(current_now - pv_current) < 0.3:
             pv_power = pv_voltage * pv_current
         else:
             pv_power = 0
-        print('U:{} V , I:{} A, P:{} W'.format(pv_voltage, pv_current, pv_power))
+        if pv_power > 0:
+            print('U:{} V , I:{} A, P:{} W'.format(pv_voltage, pv_current, pv_power))
 
         return PVSimResult(
             round(pv_power, self.float_precision),
@@ -387,6 +390,9 @@ class PVArray:
 
     def mppt_mae(v_real: List[float], v: List[float]) -> float:
         return sum([abs(v1 - v2) for v1, v2 in zip(v, v_real)]) / len(v_real)
+
+    def mppt_mape(v_real: List[float], v: List[float]) -> float:
+        return sum([abs(v1 - v2) / v2 for v1, v2 in zip(v, v_real)]) / len(v_real)
 
     @property
     def voc(self) -> float:

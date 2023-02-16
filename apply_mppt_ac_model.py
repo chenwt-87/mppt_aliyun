@@ -15,7 +15,7 @@ def read_sensor():
 def creat_agent(model_net, dev):
     env = PVEnvDiscrete.from_file(
         PV_PARAMS_PATH,
-        WEATHER_PATH,
+        HiS_DATA_PATH,
         # states=["v_norm", "i_norm", "deg"],
         pvarray_ckp_path=PVARRAY_CKP_PATH,
         states=["v_norm", "i_norm", "dv"],
@@ -25,7 +25,7 @@ def creat_agent(model_net, dev):
 
     test_env = PVEnvDiscrete.from_file(
         PV_PARAMS_PATH,
-        WEATHER_PATH,
+        HiS_DATA_PATH,
         # states=["v_norm", "i_norm", "deg"],
         pvarray_ckp_path=PVARRAY_CKP_PATH,
         states=["v_norm", "i_norm", "dv"],
@@ -53,12 +53,12 @@ def get_t_g_v_i():
     t, g, v, i, p = read_sensor()
     device = torch.device("cpu")
     model = DiscreteActorCriticNetwork(input_size=3, n_actions=13).to(device)
-    CHECKPOINT_PATH = os.path.join("models", "model_real_050.tar")
+    CHECKPOINT_PATH = os.path.join("models", MODULE_NAME)
     checkpoint = torch.load(CHECKPOINT_PATH)
     model.load_state_dict(checkpoint["model_state_dict"])
     model_agent = creat_agent(model, device)
     # obs = torch.tensor([v/VOC, i/ISC, 0])
-    obs = torch.tensor([0.89238, 0.59427, 0])
+    obs = torch.tensor([0.89238, 0.59427, 2])
     # 基于obs，计算当前状态，进入到网络结构
     action = model_agent.policy(obs)
     print(action)

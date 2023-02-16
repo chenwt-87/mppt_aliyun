@@ -177,7 +177,8 @@ class PVEnv(PVEnvBase):
         # if po:
         #     logger.info(f"PO Efficiency={PVArray.mppt_eff(p_real, p_po)}")
         logger.info(f"RL P_  Efficiency={PVArray.mppt_eff(p_po, self.history.p)}")
-        logger.info(f"RL V_ Efficiency={PVArray.mppt_mae(v_po, self.history.v)}")
+        logger.info(f"RL V_ MAE={PVArray.mppt_mae(v_po, self.history.v)}")
+        logger.info(f"RL V_ MAPE={PVArray.mppt_mape(v_po, self.history.v)}")
 
     def _add_history(self, p, v, v_pv, i) -> None:
         self.history.p.append(p)
@@ -244,7 +245,7 @@ class PVEnv(PVEnvBase):
         # g, t = 1000, 25
         # 从串口 或者 zigbee 获取数
         # v 为Actor输出的电压
-        p, self.v, self.v_pv, i2 = self.pvarray.simulate(v, i, p_v, p_i)
+        p, self.v, self.v_pv, self.i = self.pvarray.simulate(v, i, p_v, p_i)
         # 组件 实际的电压v_pv
         self._add_history(p=p, v=self.v, v_pv=self.v_pv, i=i)
 
