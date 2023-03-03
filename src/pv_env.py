@@ -48,7 +48,7 @@ class PVEnvBase(gym.Env):
     ):
         pvarray = PVArray.from_json(pv_params_path, ckp_path=pvarray_ckp_path, data_from_gateway_path=his_data_path)
         his_data = read_his_data_csv(his_data_path)
-        his_data['power'] = his_data.apply(lambda x: x['voltage']*x['current']/1e6, axis=1)
+        his_data['power'] = his_data.apply(lambda x: x['voltage'] * x['current'] / 1e6, axis=1)
         pv_environment = cls(pvarray, his_data, **kwargs)
         return pv_environment
 
@@ -92,8 +92,10 @@ class PVEnv(PVEnvBase):
         self.step_idx = 0
         self.done = False
         idx = random.randint(0, self.pv_gateway_history.shape[0])
+        print('test----idx', idx, self.pv_gateway_history.shape[0])
         pv_v = self.pv_gateway_history.at[idx, 'voltage'] / 1000
         pv_i = self.pv_gateway_history.at[idx, 'current'] / 1000
+        num_pv_curve = self.pv_gateway_history.at[idx, 'label']
         # 随机初始化一个电压
         # v = np.random.randint(2, self.pvarray.voc)
         v = 0.75 * self.pvarray.voc
@@ -103,29 +105,41 @@ class PVEnv(PVEnvBase):
         obs0 = self._store_step(v, i, pv_v, pv_i)
         print('obs0   reset', obs0)
         self.pvarray.READ_SENSOR_TIME -= 1
-        return obs0
+        return obs0, num_pv_curve
 
     #  experience.py 37 行， 调用该函数   new_obs, reward, done, _ = self.env.step(action)
-    def step(self, action: float) -> StepResult:
+    def step(self, action: float, pv_curve_idx) -> StepResult:
         if self.done:
             raise ValueError("The episode is done")
 
         self.step_idx += 1
         print('self.step_counter', self.step_counter)
-        pv_v = self.pv_gateway_history.at[self.step_counter, 'voltage'] / 1000
-        pv_i = self.pv_gateway_history.at[self.step_counter, 'current'] / 1000
+
+        # pv_v = self.pv_gateway_history.at[self.step_counter, 'voltage'] / 1000
+        # pv_i = self.pv_gateway_history.at[self.step_counter, 'current'] / 1000
+
+        idx_max = self.pv_gateway_history[self.pv_gateway_history['label'] == pv_curve_idx]['power'].idxmax()
+        pv_i_curve_now_mpp = self.pv_gateway_history.at[idx_max, 'voltage'] / 1000
+        pv_v_curve_now_mpp = self.pv_gateway_history.at[idx_max, 'current'] / 1000
+
+        idx_min= self.pv_gateway_history[self.pv_gateway_history['label'] == pv_curve_idx]['power'].idxmin()
+        pv_i_curve_now_lpp = self.pv_gateway_history.at[idx_min, 'voltage'] / 1000
+        pv_v_curve_now_lpp = self.pv_gateway_history.at[idx_min, 'current'] / 1000
+        print('当前曲线下，MPP idx={} i={}.v={}'.format(idx_max, pv_i_curve_now_mpp, pv_v_curve_now_mpp))
+        print('当前曲线下，LPP idx={} i={}.v={}'.format(idx_min, pv_i_curve_now_lpp, pv_v_curve_now_lpp))
         # 依据 action 选择电压的增量，
         # delta_v = self.actions[action]
         # actions=[-10, -5, -3, -2, -1, -0.1, 0, 0.1, 1, 2, 3, 5, 10]
         delta_v = self._get_delta_v(action)
         # clip 函数， 将v+delta_v 限制在 0 和 Voc 之间
         print('\n ======= self.v={},delta_v={}, action={}, pv_panel_v:{} pv_panel_i: {}'.format(
-            self.v, delta_v, action, pv_v, pv_i))
-        v = np.clip(self.v + delta_v,  0.5 * self.pvarray.voc, self.pvarray.voc)
+            self.v, delta_v, action, pv_v_curve_now_mpp, pv_i_curve_now_mpp))
+        v = np.clip(self.v + delta_v, 0.5 * self.pvarray.voc, self.pvarray.voc)
         print(self.i)
         # 依据 v， 通过历史数据或者matlab仿真，得到 obs
         # self.history() 赋值
-        obs = self._store_step(v, self.i, pv_v, pv_i)
+        obs = self._store_step(v, self.i, pv_v_curve_now_mpp, pv_i_curve_now_mpp)
+        self.pvarray.curve_num = self.pv_gateway_history.at[self.step_counter, 'label']
         #  obs ['v_norm', 'i_norm', 'dv']
         # print('test_obs', obs)
 
@@ -145,7 +159,7 @@ class PVEnv(PVEnvBase):
             obs,
             reward,
             self.done,
-            {"step_idx": self.step_idx, "steps": self.step_counter},
+            {"step_idx": self.step_idx, "steps": self.step_counter, 'curve_idx': self.pvarray.curve_num},
         )
 
     def render(self, vars: List[str]) -> None:
@@ -160,7 +174,7 @@ class PVEnv(PVEnvBase):
     def render_vs_true(self, po: bool = False) -> None:
         # p_real, v_real, _ = self.pvarray.get_true_mpp(self.history.g, self.history.t)
         if po:
-            p_po, v_po = self.pv_gateway_history['power'], self.pv_gateway_history['voltage']/1e3
+            p_po, v_po = self.pv_gateway_history['power'], self.pv_gateway_history['voltage'] / 1e3
         # plt.plot(p_real, label="P Max")
         plt.plot(self.history.p, label="P RL")
         if po:

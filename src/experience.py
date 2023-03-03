@@ -15,7 +15,7 @@ class ExperienceSorce:
     def __init__(self, env: gym.Env, policy: BasePolicy):
         self.env = env
         self.policy = policy
-        self.obs = self.env.reset()
+        self.obs, self.env.pvarray.curve_num = self.env.reset()
         self.done = False
         self.render = False
 
@@ -27,15 +27,16 @@ class ExperienceSorce:
 
     def play_step(self):
         if self.done:
-            self.obs = self.env.reset()
+            # reset 函数在 pv_env.py 89 行
+            self.obs, self.env.pvarray.curve_num = self.env.reset()
             self.done = False
         # obs =  ['v_norm', 'i_norm', 'dv']
         obs = self.obs
-
+        curve_num = self.env.pvarray.curve_num
         # 基于obs，计算当前状态，进入到网络结构  转入policies.py line 46 行
         action = self.policy(obs)
         # 基于action 【int】，选择电压增量，计算新的状态和 reward , 调用  pv_env.py  line 97 的 step(函数)
-        new_obs, reward, done, _ = self.env.step(action)
+        new_obs, reward, done, _ = self.env.step(action, curve_num)
         if self.render:
             self.env.render()
         if done:
@@ -46,7 +47,7 @@ class ExperienceSorce:
 
     def play_episode(self):
         ep_history = []
-        self.obs = self.env.reset()
+        self.obs, self.env.pvarray.curve_num = self.env.reset()
         iter_n = 0
         while True:
             iter_n += 1
@@ -90,7 +91,8 @@ class ExperienceSorceDiscounted(ExperienceSorce):
             # 【state， action， reward， last_state】
 
             self.env.step_counter += 1
-            for act in range(6):
+            # 每个状态巡回六次，
+            for act in range(1):
                 exp = self.play_step()
                 # print('依据网络计,', exp, step_idx)
                 reward += exp.reward
@@ -137,7 +139,7 @@ class ExperienceSorceDiscounted(ExperienceSorce):
 
     def play_episode(self):
         ep_history = []
-        self.obs = self.env.reset()
+        self.obs, self.env.pvarray.curve_num = self.env.reset()
         iter_num = 0
         while True:
             iter_num += 1
