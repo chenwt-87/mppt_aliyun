@@ -7,9 +7,10 @@ from src.networks import DiscreteActorCriticNetwork
 from src.pv_env import History, PVEnvDiscrete
 from src.reward import RewardDeltaPower
 from src.reward import RewardDeltaPowerVoltage
+import time
 # READ_SENSOR_TIME = 0
 
-MODULE_NAME = "model_real_03333.tar"
+MODULE_NAME = "model_real_21.tar"
 PV_PARAMS_PATH = os.path.join("parameters", "050_pvarray.json")
 CHECKPOINT_PATH = os.path.join("models", MODULE_NAME)
 PVARRAY_CKP_PATH = os.path.join("data", "051_pvarray_iv.json")
@@ -58,7 +59,7 @@ if __name__ == "__main__":
     )
 
     # 训练模型
-    agent.learn(steps=10000, verbose_every=10, save_every=1000)
+    # agent.learn(steps=20000, verbose_every=10, save_every=1000)
 
     agent.exp_train_source.play_episode()
     env.render_vs_true(po=True)

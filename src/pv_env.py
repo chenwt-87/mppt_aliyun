@@ -92,17 +92,24 @@ class PVEnv(PVEnvBase):
         self.step_idx = 0
         self.done = False
         idx = random.randint(0, self.pv_gateway_history.shape[0])
-        print('test----idx', idx, self.pv_gateway_history.shape[0])
-        pv_v = self.pv_gateway_history.at[idx, 'voltage'] / 1000
-        pv_i = self.pv_gateway_history.at[idx, 'current'] / 1000
-        num_pv_curve = self.pv_gateway_history.at[idx, 'label']
+        num_pv_curve = self.pv_gateway_history.at[self.pv_gateway_history.index[idx], 'label']
+        idx_max = self.pv_gateway_history[self.pv_gateway_history['label'] == num_pv_curve]['power'].idxmax()
+
+        pv_v_curve_mpp = self.pv_gateway_history.at[idx_max, 'voltage'] / 1000
+        pv_i_curve_mpp = self.pv_gateway_history.at[idx_max, 'current'] / 1000
+
+        idx_min = self.pv_gateway_history[self.pv_gateway_history['label'] == num_pv_curve]['power'].idxmin()
+        pv_v_curve_lpp = self.pv_gateway_history.at[idx_min, 'voltage'] / 1000
+        pv_i_curve_lpp = self.pv_gateway_history.at[idx_min, 'current'] / 1000
+        # num_pv_curve = self.pv_gateway_history.at[idx, 'label']
+
         # 随机初始化一个电压
         # v = np.random.randint(2, self.pvarray.voc)
         v = 0.75 * self.pvarray.voc
         i = 0.8 * self.pvarray.isc
         #   self._store_step 中获取当前温度和光照， 并通过查历史数据 或者 matlab仿真，得到电流，功率，
         #   返回【v_norm,i_norm,dv】
-        obs0 = self._store_step(v, i, pv_v, pv_i)
+        obs0 = self._store_step(v, i, pv_v_curve_mpp, pv_i_curve_mpp, pv_v_curve_lpp, pv_i_curve_lpp)
         print('obs0   reset', obs0)
         self.pvarray.READ_SENSOR_TIME -= 1
         return obs0, num_pv_curve
@@ -119,29 +126,33 @@ class PVEnv(PVEnvBase):
         # pv_i = self.pv_gateway_history.at[self.step_counter, 'current'] / 1000
 
         idx_max = self.pv_gateway_history[self.pv_gateway_history['label'] == pv_curve_idx]['power'].idxmax()
-        pv_i_curve_now_mpp = self.pv_gateway_history.at[idx_max, 'voltage'] / 1000
-        pv_v_curve_now_mpp = self.pv_gateway_history.at[idx_max, 'current'] / 1000
 
-        idx_min= self.pv_gateway_history[self.pv_gateway_history['label'] == pv_curve_idx]['power'].idxmin()
-        pv_i_curve_now_lpp = self.pv_gateway_history.at[idx_min, 'voltage'] / 1000
-        pv_v_curve_now_lpp = self.pv_gateway_history.at[idx_min, 'current'] / 1000
+        pv_v_curve_now_mpp = self.pv_gateway_history.at[idx_max, 'voltage'] / 1000
+        pv_i_curve_now_mpp = self.pv_gateway_history.at[idx_max, 'current'] / 1000
+
+        idx_min = self.pv_gateway_history[self.pv_gateway_history['label'] == pv_curve_idx]['power'].idxmin()
+        pv_v_curve_now_lpp = self.pv_gateway_history.at[idx_min, 'voltage'] / 1000
+        pv_i_curve_now_lpp = self.pv_gateway_history.at[idx_min, 'current'] / 1000
         print('当前曲线下，MPP idx={} i={}.v={}'.format(idx_max, pv_i_curve_now_mpp, pv_v_curve_now_mpp))
         print('当前曲线下，LPP idx={} i={}.v={}'.format(idx_min, pv_i_curve_now_lpp, pv_v_curve_now_lpp))
+        print('当前曲线下，共采集{}个工作点'.format(
+            self.pv_gateway_history[self.pv_gateway_history['label'] == pv_curve_idx].shape[0]))
         # 依据 action 选择电压的增量，
         # delta_v = self.actions[action]
         # actions=[-10, -5, -3, -2, -1, -0.1, 0, 0.1, 1, 2, 3, 5, 10]
         delta_v = self._get_delta_v(action)
         # clip 函数， 将v+delta_v 限制在 0 和 Voc 之间
-        print('\n ======= self.v={},delta_v={}, action={}, pv_panel_v:{} pv_panel_i: {}'.format(
-            self.v, delta_v, action, pv_v_curve_now_mpp, pv_i_curve_now_mpp))
+
         v = np.clip(self.v + delta_v, 0.5 * self.pvarray.voc, self.pvarray.voc)
-        print(self.i)
+        print('\n ======= self.v={},delta_v={}, action={}, v = {}, pv_panel_v:{} pv_panel_i: {}'.format(
+            self.v, delta_v, action, v, pv_v_curve_now_mpp, pv_i_curve_now_mpp))
         # 依据 v， 通过历史数据或者matlab仿真，得到 obs
         # self.history() 赋值
-        obs = self._store_step(v, self.i, pv_v_curve_now_mpp, pv_i_curve_now_mpp)
+        obs = \
+            self._store_step(v, self.i, pv_v_curve_now_mpp, pv_i_curve_now_mpp, pv_v_curve_now_lpp, pv_i_curve_now_lpp)
         self.pvarray.curve_num = self.pv_gateway_history.at[self.step_counter, 'label']
         #  obs ['v_norm', 'i_norm', 'dv']
-        # print('test_obs', obs)
+        print('test_obs', obs)
 
         """
         Returns a reward based on the value of the change of power
@@ -255,11 +266,11 @@ class PVEnv(PVEnvBase):
             dtype=np.float32,
         )
 
-    def _store_step(self, v: float, i: float, p_v: float, p_i: float) -> np.ndarray:
+    def _store_step(self, v: float, i: float, p_v_max: float, p_i_max: float, p_v_min: float, p_i_min: float) -> np.ndarray:
         # g, t = 1000, 25
         # 从串口 或者 zigbee 获取数
         # v 为Actor输出的电压
-        p, self.v, self.v_pv, self.i = self.pvarray.simulate(v, i, p_v, p_i)
+        p, self.v, self.v_pv, self.i = self.pvarray.simulate(v, i, p_v_max, p_i_max, p_v_min, p_i_min)
         # 组件 实际的电压v_pv
         self._add_history(p=p, v=self.v, v_pv=self.v_pv, i=i)
 

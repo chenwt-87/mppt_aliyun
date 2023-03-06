@@ -55,7 +55,9 @@ class PVArray:
         )
 
     def simulate(
-            self, voltage_set: float, current_in: float, pv_voltage: float, pv_current: float
+            self, voltage_set: float, current_in: float,
+            pv_voltage_m: float, pv_current_m: float,
+            pv_voltage_l: float, pv_current_l: float
     ) -> PVSimResult:
         """
         Simulate the simulink model
@@ -64,21 +66,23 @@ class PVArray:
             pv_voltage:  voltage [V]
             pv_current: current [I]
         """
-        if isinstance(pv_voltage, np.ndarray):
-            pv_voltage = pv_voltage[0]
+        if isinstance(pv_voltage_m, np.ndarray):
+            pv_voltage_m = pv_voltage_m[0]
 
-        pv_v = round(pv_voltage, self.float_precision)
-        pv_i = round(pv_current, self.float_precision)
+        pv_v_m = round(pv_voltage_m, self.float_precision)
+        pv_i_m = round(pv_current_m, self.float_precision)
+        pv_v_l = round(pv_voltage_l, self.float_precision)
+        pv_i_l = round(pv_current_l, self.float_precision)
         set_v = round(voltage_set, self.float_precision)
         now_i = round(current_in, self.float_precision)
-        key = f"{pv_v},{pv_i}"
+        key = f"{pv_v_m},{pv_i_m}"
         if key == '24.98,1':
             print(key)
         if 0 and self.hist[key]:
             # 从历史数据中读取
             result = PVSimResult(*self.hist[key])
         else:
-            result = self._read_gateway_his_data(pv_v, pv_i, set_v, now_i)
+            result = self._read_gateway_his_data(pv_v_m, pv_i_m, pv_v_l, pv_i_l, set_v, now_i)
             # self.READ_SENSOR_TIME += 1
             self.hist[key] = result
             self._save_history(verbose=False)
@@ -369,19 +373,22 @@ class PVArray:
             round(pv_current, self.float_precision),
         )
 
-    def _read_gateway_his_data(self, pv_voltage, pv_current, voltage_set, current_now) -> PVSimResult:
-        if abs(voltage_set - pv_voltage) < 1 and abs(current_now - pv_current) < 0.3:
-            pv_power = pv_voltage * pv_current
+    def _read_gateway_his_data(self, pv_voltage_m, pv_current_m,
+                               pv_voltage_l, pv_current_l, voltage_set, current_now) -> PVSimResult:
+        if pv_voltage_l-1 < voltage_set < pv_voltage_m+1:
+            pv_power = voltage_set * current_now
+        # elif pv_current_l-0.3 < current_now < pv_current_m+0.3:
+        #     pv_power = voltage_set * current_now
         else:
             pv_power = 0
         if pv_power > 0:
-            print('U:{} V , I:{} A, P:{} W'.format(pv_voltage, pv_current, pv_power))
+            print('U:{} V , I:{} A, P:{} W'.format(voltage_set, current_now, pv_power))
 
         return PVSimResult(
             round(pv_power, self.float_precision),
             round(voltage_set, self.float_precision),
-            round(pv_voltage, self.float_precision),
-            round(pv_current, self.float_precision),
+            round(pv_voltage_m, self.float_precision),
+            round(pv_current_m, self.float_precision),
         )
 
     @staticmethod
