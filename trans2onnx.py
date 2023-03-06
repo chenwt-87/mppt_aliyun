@@ -33,18 +33,18 @@ def tran2onnx():
                       dynamic_axes={"input": {0: "batch_size"},  # 批处理变量
                                     "output": {0: "batch_size"}})
 
-def onnx_to_h5(output_path):
-    '''
-    将.onnx模型保存为.h5文件模型,并打印出模型的大致结构
-    '''
-    onnx_model = onnx.load(output_path)
-    k_model = onnx_to_keras(onnx_model, ['input'])
-    export_h5_file = "RL_MPPT.h5"
-    keras.models.save_model(k_model, export_h5_file, overwrite=True, include_optimizer=True)
-    # 下面内容是加载该模型，然后将该模型的结构打印出来
-    model = tf.keras.models.load_model(export_h5_file)
-    model.summary()
-    print(model)
+# def onnx_to_h5(output_path):
+#     '''
+#     将.onnx模型保存为.h5文件模型,并打印出模型的大致结构
+#     '''
+#     onnx_model = onnx.load(output_path)
+#     k_model = onnx_to_keras(onnx_model, ['input'])
+#     export_h5_file = "RL_MPPT.h5"
+#     keras.models.save_model(k_model, export_h5_file, overwrite=True, include_optimizer=True)
+#     # 下面内容是加载该模型，然后将该模型的结构打印出来
+#     model = tf.keras.models.load_model(export_h5_file)
+#     model.summary()
+#     print(model)
 
 
 # def pytorch2keras():
