@@ -59,7 +59,7 @@ if __name__ == "__main__":
     )
 
     # 训练模型
-    # agent.learn(steps=20000, verbose_every=10, save_every=1000)
+    # agent.learn(steps=50000, verbose_every=10, save_every=1000)
 
     agent.exp_train_source.play_episode()
     env.render_vs_true(po=True)
