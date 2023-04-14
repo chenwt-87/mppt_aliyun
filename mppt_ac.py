@@ -10,7 +10,9 @@ from src.reward import RewardDeltaPowerVoltage
 import time
 # READ_SENSOR_TIME = 0
 
-MODULE_NAME = "model_real_21.tar"
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+
+MODULE_NAME = "model_real_23.tar"
 PV_PARAMS_PATH = os.path.join("parameters", "050_pvarray.json")
 CHECKPOINT_PATH = os.path.join("models", MODULE_NAME)
 PVARRAY_CKP_PATH = os.path.join("data", "051_pvarray_iv.json")
@@ -29,7 +31,7 @@ if __name__ == "__main__":
         PV_PARAMS_PATH,  # 光伏组件参数
         HiS_DATA_PATH,   # 光伏组件历史数据
         pvarray_ckp_path=PVARRAY_CKP_PATH,  # 训练过程数据存储
-        states=["v", "i", "dv_set2pv"],  # 训练输入，可以有多种组合
+        states=["v", "i", "p"],  # 训练输入，可以有多种组合
         reward_fn=RewardDeltaPowerVoltage(2, 0.9, 1),  # 奖励函数
         actions=[-10, -5, -3, -2, -1, -0.1, 0, 0.1, 1, 2, 3, 5, 10],  # 策略函数
     )
@@ -59,7 +61,7 @@ if __name__ == "__main__":
     )
 
     # 训练模型
-    # agent.learn(steps=20000, verbose_every=10, save_every=1000)
+    # agent.learn(steps=50000, verbose_every=10, save_every=1000)
 
     agent.exp_train_source.play_episode()
     env.render_vs_true(po=True)
