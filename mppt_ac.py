@@ -17,7 +17,7 @@ PV_PARAMS_PATH = os.path.join("parameters", "050_pvarray.json")
 CHECKPOINT_PATH = os.path.join("models", MODULE_NAME)
 PVARRAY_CKP_PATH = os.path.join("data", "051_pvarray_iv.json")
 # 这个历史数据集里面，包含很多个辐照条件下的MPP，但是一个辐照下面的非MPP点太少，导致训练样本不够。
-HiS_DATA_PATH = os.path.join("data", "data_for_train_A2C_with_label.csv")
+HiS_DATA_PATH = os.path.join("data", "600W_train_data.csv")
 LEARNING_RATE = 0.001
 ENTROPY_BETA = 0.002
 GAMMA = 0.9
@@ -61,7 +61,7 @@ if __name__ == "__main__":
     )
 
     # 训练模型
-    # agent.learn(steps=50000, verbose_every=10, save_every=1000)
+    agent.learn(steps=10000, verbose_every=10, save_every=1000)
 
     agent.exp_train_source.play_episode()
     env.render_vs_true(po=True)

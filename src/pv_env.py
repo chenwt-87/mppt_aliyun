@@ -11,6 +11,7 @@ from math import atan2
 from src.pv_array import PVArray
 from src.utils import read_his_data_csv
 from src.common import StepResult, History
+from src.func import *
 from src.logger import logger
 
 G_MAX = 1200
@@ -91,6 +92,7 @@ class PVEnv(PVEnvBase):
         self.step_counter = 0
         self.step_idx = 0
         self.done = False
+        # 随机去了历史数据中一个点
         idx = random.randint(0, self.pv_gateway_history.shape[0])
         num_pv_curve = self.pv_gateway_history.at[self.pv_gateway_history.index[idx], 'label']
         idx_max = self.pv_gateway_history[self.pv_gateway_history['label'] == num_pv_curve]['power'].idxmax()
@@ -106,7 +108,9 @@ class PVEnv(PVEnvBase):
         # 随机初始化一个电压
         # v = np.random.randint(2, self.pvarray.voc)
         v = 0.75 * self.pvarray.voc
-        i = 0.8 * self.pvarray.isc
+        # v 已经曲线上， 获取i
+        # i = 0.8 * self.pvarray.isc
+        i = inter1pd_iv_curve(v, self.pv_gateway_history[self.pv_gateway_history['label'] == num_pv_curve])
         #   self._store_step 中获取当前温度和光照， 并通过查历史数据 或者 matlab仿真，得到电流，功率，
         #   返回【v_norm,i_norm,dv】
         obs0 = self._store_step(v, i, pv_v_curve_mpp, pv_i_curve_mpp, pv_v_curve_lpp, pv_i_curve_lpp)
@@ -144,12 +148,13 @@ class PVEnv(PVEnvBase):
         # clip 函数， 将v+delta_v 限制在 0 和 Voc 之间
 
         v = np.clip(self.v + delta_v, 0.5 * self.pvarray.voc, self.pvarray.voc)
-        print('\n ======= self.v={},delta_v={}, action={}, v = {}, pv_panel_v:{} pv_panel_i: {}'.format(
-            self.v, delta_v, action, v, pv_v_curve_now_mpp, pv_i_curve_now_mpp))
+        i = inter1pd_iv_curve(v, self.pv_gateway_history[self.pv_gateway_history['label'] == pv_curve_idx])
+        print('\n ======= self.v={},delta_v={}, action={}, v = {}, i ={} pv_panel_v:{} pv_panel_i: {}'.format(
+            self.v, delta_v, action, v, i, pv_v_curve_now_mpp, pv_i_curve_now_mpp))
         # 依据 v， 通过历史数据或者matlab仿真，得到 obs
         # self.history() 赋值
         obs = \
-            self._store_step(v, self.i, pv_v_curve_now_mpp, pv_i_curve_now_mpp, pv_v_curve_now_lpp, pv_i_curve_now_lpp)
+            self._store_step(v, i, pv_v_curve_now_mpp, pv_i_curve_now_mpp, pv_v_curve_now_lpp, pv_i_curve_now_lpp)
         self.pvarray.curve_num = self.pv_gateway_history.at[self.step_counter, 'label']
         #  obs ['v_norm', 'i_norm', 'dv']
         print('test_obs', obs)

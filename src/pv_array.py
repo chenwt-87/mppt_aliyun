@@ -74,7 +74,7 @@ class PVArray:
         pv_v_l = round(pv_voltage_l, self.float_precision)
         pv_i_l = round(pv_current_l, self.float_precision)
         set_v = round(voltage_set, self.float_precision)
-        now_i = round(current_in, self.float_precision)
+        except_i = round(current_in, self.float_precision)
         key = f"{pv_v_m},{pv_i_m}"
         if key == '24.98,1':
             print(key)
@@ -82,7 +82,7 @@ class PVArray:
             # 从历史数据中读取
             result = PVSimResult(*self.hist[key])
         else:
-            result = self._read_gateway_his_data(pv_v_m, pv_i_m, pv_v_l, pv_i_l, set_v, now_i)
+            result = self._read_gateway_his_data(pv_v_m, pv_i_m, pv_v_l, pv_i_l, set_v, except_i)
             # self.READ_SENSOR_TIME += 1
             self.hist[key] = result
             self._save_history(verbose=False)
@@ -373,6 +373,7 @@ class PVArray:
             round(pv_current, self.float_precision),
         )
 
+    # 改成曲线差值的方式？
     def _read_gateway_his_data(self, pv_voltage_m, pv_current_m,
                                pv_voltage_l, pv_current_l, voltage_set, current_now) -> PVSimResult:
         if pv_voltage_l-1 < voltage_set < pv_voltage_m+1:
