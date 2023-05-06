@@ -20,6 +20,7 @@ def read_his_data_csv(path: str) -> pd.DataFrame:
     "Read a csv file and returns a DataFrame object"
     logger.info(f"Reading {path} . . .")
     df = pd.read_csv(path, index_col=0)
+    df = df.head(1000)
     return df
 
 

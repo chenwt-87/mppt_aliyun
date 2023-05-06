@@ -12,8 +12,8 @@ import time
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
-MODULE_NAME = "model_real_23.tar"
-PV_PARAMS_PATH = os.path.join("parameters", "050_pvarray.json")
+MODULE_NAME = "model_real_614.tar"
+PV_PARAMS_PATH = os.path.join("parameters", "614_pvarray.json")
 CHECKPOINT_PATH = os.path.join("models", MODULE_NAME)
 PVARRAY_CKP_PATH = os.path.join("data", "051_pvarray_iv.json")
 # 这个历史数据集里面，包含很多个辐照条件下的MPP，但是一个辐照下面的非MPP点太少，导致训练样本不够。
@@ -31,16 +31,18 @@ if __name__ == "__main__":
         PV_PARAMS_PATH,  # 光伏组件参数
         HiS_DATA_PATH,   # 光伏组件历史数据
         pvarray_ckp_path=PVARRAY_CKP_PATH,  # 训练过程数据存储
-        states=["v", "i", "p"],  # 训练输入，可以有多种组合
-        reward_fn=RewardDeltaPowerVoltage(2, 0.9, 1),  # 奖励函数
+        states=["v", "i", "dv"],  # 训练输入，可以有多种组合
+        # reward_fn=RewardDeltaPowerVoltage(2, 0.9, 1),  # 奖励函数
+        reward_fn=RewardDeltaPower(2, 0.9),
         actions=[-10, -5, -3, -2, -1, -0.1, 0, 0.1, 1, 2, 3, 5, 10],  # 策略函数
     )
     test_env = PVEnvDiscrete.from_file(
         PV_PARAMS_PATH,
         HiS_DATA_PATH,
         pvarray_ckp_path=PVARRAY_CKP_PATH,
-        states=["v", "i", "dv_set2pv"],
-        reward_fn=RewardDeltaPowerVoltage(2, 0.9, 1),
+        states=["v", "i", "dv"],
+        # reward_fn=RewardDeltaPowerVoltage(2, 0.9, 1),
+        reward_fn=RewardDeltaPower(2, 0.9),
         actions=[-10, -5, -3, -2, -1, -0.1, 0, 0.1, 1, 2, 3, 5, 10],
     )
     device = torch.device("cpu")
@@ -61,10 +63,18 @@ if __name__ == "__main__":
     )
 
     # 训练模型
-    agent.learn(steps=10000, verbose_every=10, save_every=1000)
+    # env.pv_gateway_history.shape[0]
+    # agent.learn(steps=env.pv_gateway_history.shape[0], verbose_every=10, save_every=100)
+    # agent.learn(steps=env.pv_gateway_history.shape[0]//100, verbose_every=10, save_every=100)
 
     agent.exp_train_source.play_episode()
     env.render_vs_true(po=True)
     env.render(["dv"])
     agent.plot_performance(["entropy_loss"])
+    agent.plot_performance(["mean_rewards"])
+    agent.plot_performance(["total_rewards"])
+    agent.plot_performance(["total_loss"])
+
+
+
 

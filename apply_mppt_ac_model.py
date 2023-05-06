@@ -18,7 +18,7 @@ def creat_agent(model_net, dev):
         HiS_DATA_PATH,
         # states=["v_norm", "i_norm", "deg"],
         pvarray_ckp_path=PVARRAY_CKP_PATH,
-        states=["v_norm", "i_norm", "dv"],
+        states=["v", "i", "dv"],
         reward_fn=RewardDeltaPower(2, 0.9),
         actions=[-10, -5, -3, -2, -1, -0.1, 0, 0.1, 1, 2, 3, 5, 10],
     )
@@ -28,7 +28,7 @@ def creat_agent(model_net, dev):
         HiS_DATA_PATH,
         # states=["v_norm", "i_norm", "deg"],
         pvarray_ckp_path=PVARRAY_CKP_PATH,
-        states=["v_norm", "i_norm", "dv"],
+        states=["v", "i", "dv"],
         reward_fn=RewardDeltaPower(2, 0.9),
         actions=[-10, -5, -3, -2, -1, -0.1, 0, 0.1, 1, 2, 3, 5, 10],
     )
@@ -58,12 +58,13 @@ def get_t_g_v_i():
     model.load_state_dict(checkpoint["model_state_dict"])
     model_agent = creat_agent(model, device)
     # obs = torch.tensor([v/VOC, i/ISC, 0])
-    obs = torch.tensor([0.89238, 0.59427, 2])
+    obs = torch.tensor([24.740, 3.174, 6])
     # 基于obs，计算当前状态，进入到网络结构
-    action = model_agent.policy(obs)
-    print(action)
+    for c in range(10):
+        action = model_agent.policy(obs)
+        print(action, 'action')
     # 基于action，计算新的状态和 reward    调用  pv_env.py  line 97 的 step(函数)
-    new_obs, reward, done, _ = model_agent.env.step(action)
+        new_obs, reward, done, _ = model_agent.env.step(action, 18)
     return new_obs, reward
 
 

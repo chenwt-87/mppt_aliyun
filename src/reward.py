@@ -58,11 +58,12 @@ class RewardDeltaPower:
         self.b = b
 
     def __call__(self, history: History) -> float:
-        dp = history.dp[-1]
-        if dp < 0:
-            return self.a * dp
-        else:
-            return self.b * dp
+        return history.p[-1]
+        # dp = history.dp[-1]
+        # if dp < 0:
+        #     return self.a * dp
+        # else:
+        #     return self.b * dp
 
 
 class RewardPower:

@@ -75,7 +75,7 @@ class PVArray:
         pv_i_l = round(pv_current_l, self.float_precision)
         set_v = round(voltage_set, self.float_precision)
         except_i = round(current_in, self.float_precision)
-        key = f"{pv_v_m},{pv_i_m}"
+        key = f"{set_v},{except_i}"
         if key == '24.98,1':
             print(key)
         if 0 and self.hist[key]:
@@ -376,12 +376,13 @@ class PVArray:
     # 改成曲线差值的方式？
     def _read_gateway_his_data(self, pv_voltage_m, pv_current_m,
                                pv_voltage_l, pv_current_l, voltage_set, current_now) -> PVSimResult:
-        if pv_voltage_l-1 < voltage_set < pv_voltage_m+1:
-            pv_power = voltage_set * current_now
-        # elif pv_current_l-0.3 < current_now < pv_current_m+0.3:
+        # if pv_voltage_l-1 < voltage_set < pv_voltage_m+1:
         #     pv_power = voltage_set * current_now
-        else:
-            pv_power = 0
+        # # elif pv_current_l-0.3 < current_now < pv_current_m+0.3:
+        # #     pv_power = voltage_set * current_now
+        # else:
+        #     pv_power = 0
+        pv_power = voltage_set * current_now
         if pv_power > 0:
             print('U:{} V , I:{} A, P:{} W'.format(voltage_set, current_now, pv_power))
 

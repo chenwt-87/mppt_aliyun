@@ -31,6 +31,7 @@ class ExperienceSorce:
             self.obs, self.env.pvarray.curve_num = self.env.reset()
             self.done = False
         # obs =  ['v_norm', 'i_norm', 'dv']
+        self.obs, self.env.pvarray.curve_num = self.env.set_obs(self.env.step_idx)
         obs = self.obs
         curve_num = self.env.pvarray.curve_num
         # 基于obs，计算当前状态，进入到网络结构  转入policies.py line 46 行
@@ -42,7 +43,7 @@ class ExperienceSorce:
         if done:
             self.done = True
             return Experience(state=obs, action=action, reward=reward, last_state=None)
-        self.obs = new_obs
+        # self.obs = new_obs
         return Experience(state=obs, action=action, reward=reward, last_state=new_obs)
 
     def play_episode(self):
@@ -86,18 +87,14 @@ class ExperienceSorceDiscounted(ExperienceSorce):
         history = []
         discounted_reward = 0.0
         reward = 0.0
-
+        self.env.step_counter += 1
         for step_idx in range(self.max_steps):
-            # 【state， action， reward， last_state】
-
-            self.env.step_counter += 1
-            # 每个状态巡回六次，
-            for act in range(1):
-                exp = self.play_step()
-                # print('依据网络计,', exp, step_idx)
-                reward += exp.reward
-                discounted_reward += exp.reward * self.gamma ** (step_idx)
-                history.append(exp)
+            # for act in range(1):
+            exp = self.play_step()
+            # print('依据网络计,', exp, step_idx)
+            reward += exp.reward
+            discounted_reward += exp.reward * self.gamma ** (step_idx)
+            history.append(exp)
 
             if exp.last_state is None:
                 break
@@ -164,7 +161,8 @@ class ExperienceSorceDiscountedSteps(ExperienceSorceDiscounted):
         self.steps = steps
 
     def __next__(self):
-        # exp 【state,action,reward,last_state,discounted_reward,steps】
+        # exp 【state,action,reward,last_state,discounted_reward,steps】】
+        # 返回一个batch的 exp
         return [self.play_n_steps() for _ in range(self.steps)]
 
 

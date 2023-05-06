@@ -123,7 +123,7 @@ class Agent(AgentABC):
     ):
 
         for _ in tqdm(range(steps)):
-            self.counter_step += 1
+            # self.counter_step += 1
             batch = self._prepare_batch()
             # batch [obs,action, reward]
             # reward 为 target_values,
