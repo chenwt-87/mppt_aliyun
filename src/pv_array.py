@@ -57,7 +57,8 @@ class PVArray:
     def simulate(
             self, voltage_set: float, current_in: float,
             pv_voltage_m: float, pv_current_m: float,
-            pv_voltage_l: float, pv_current_l: float
+            pv_voltage_org: float, pv_current_org: float,
+            data_index: int, flag_write: int
     ) -> PVSimResult:
         """
         Simulate the simulink model
@@ -71,21 +72,23 @@ class PVArray:
 
         pv_v_m = round(pv_voltage_m, self.float_precision)
         pv_i_m = round(pv_current_m, self.float_precision)
-        pv_v_l = round(pv_voltage_l, self.float_precision)
-        pv_i_l = round(pv_current_l, self.float_precision)
+        pv_v_o = round(pv_voltage_org, self.float_precision)
+        pv_i_o = round(pv_current_org, self.float_precision)
         set_v = round(voltage_set, self.float_precision)
         except_i = round(current_in, self.float_precision)
-        key = f"{set_v},{except_i}"
-        if key == '24.98,1':
-            print(key)
-        if 0 and self.hist[key]:
+        key = f"{data_index},{pv_v_o},{pv_i_o},{round(set_v-pv_v_o,2)}"
+        if key == "1,25.02,3.17,0.0" or '2,25.02,3.17,-1.0':
+            print('ooooo', key)
+        if self.hist[key]:
             # 从历史数据中读取
             result = PVSimResult(*self.hist[key])
         else:
-            result = self._read_gateway_his_data(pv_v_m, pv_i_m, pv_v_l, pv_i_l, set_v, except_i)
+            result = self._read_gateway_his_data(pv_v_m, pv_i_m, pv_v_o, pv_i_o, set_v, except_i)
             # self.READ_SENSOR_TIME += 1
             self.hist[key] = result
-            self._save_history(verbose=False)
+            # print('key===', key)
+            if flag_write:
+                self._save_history(verbose=False)
         self.READ_SENSOR_TIME += 1
         return result
 
@@ -113,8 +116,8 @@ class PVArray:
         self.READ_SENSOR_TIME += 1
         print('self.READ_SENSOR_TIME', self.READ_SENSOR_TIME)
 
-        self.hist[key] = result
-        self._save_history(verbose=False)
+        # self.hist[key] = result
+        # self._save_history(verbose=False)
 
         return result
 
@@ -375,7 +378,7 @@ class PVArray:
 
     # 改成曲线差值的方式？
     def _read_gateway_his_data(self, pv_voltage_m, pv_current_m,
-                               pv_voltage_l, pv_current_l, voltage_set, current_now) -> PVSimResult:
+                               pv_voltage_o, pv_current_o, voltage_set, current_now) -> PVSimResult:
         # if pv_voltage_l-1 < voltage_set < pv_voltage_m+1:
         #     pv_power = voltage_set * current_now
         # # elif pv_current_l-0.3 < current_now < pv_current_m+0.3:
@@ -384,7 +387,7 @@ class PVArray:
         #     pv_power = 0
         pv_power = voltage_set * current_now
         if pv_power > 0:
-            print('U:{} V , I:{} A, P:{} W'.format(voltage_set, current_now, pv_power))
+            print('new U:{} V , new I:{} A, new P:{} W'.format(voltage_set, current_now, pv_power))
 
         return PVSimResult(
             round(pv_power, self.float_precision),

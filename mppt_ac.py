@@ -12,7 +12,7 @@ import time
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
-MODULE_NAME = "model_real_614.tar"
+MODULE_NAME = "model_real_616.tar"
 PV_PARAMS_PATH = os.path.join("parameters", "614_pvarray.json")
 CHECKPOINT_PATH = os.path.join("models", MODULE_NAME)
 PVARRAY_CKP_PATH = os.path.join("data", "051_pvarray_iv.json")
@@ -31,7 +31,7 @@ if __name__ == "__main__":
         PV_PARAMS_PATH,  # 光伏组件参数
         HiS_DATA_PATH,   # 光伏组件历史数据
         pvarray_ckp_path=PVARRAY_CKP_PATH,  # 训练过程数据存储
-        states=["v", "i", "dv"],  # 训练输入，可以有多种组合
+        states=["v", "i", "p"],  # 训练输入，可以有多种组合
         # reward_fn=RewardDeltaPowerVoltage(2, 0.9, 1),  # 奖励函数
         reward_fn=RewardDeltaPower(2, 0.9),
         actions=[-10, -5, -3, -2, -1, -0.1, 0, 0.1, 1, 2, 3, 5, 10],  # 策略函数
@@ -40,7 +40,7 @@ if __name__ == "__main__":
         PV_PARAMS_PATH,
         HiS_DATA_PATH,
         pvarray_ckp_path=PVARRAY_CKP_PATH,
-        states=["v", "i", "dv"],
+        states=["v", "i", "p"],
         # reward_fn=RewardDeltaPowerVoltage(2, 0.9, 1),
         reward_fn=RewardDeltaPower(2, 0.9),
         actions=[-10, -5, -3, -2, -1, -0.1, 0, 0.1, 1, 2, 3, 5, 10],
@@ -65,15 +65,15 @@ if __name__ == "__main__":
     # 训练模型
     # env.pv_gateway_history.shape[0]
     # agent.learn(steps=env.pv_gateway_history.shape[0], verbose_every=10, save_every=100)
-    # agent.learn(steps=env.pv_gateway_history.shape[0]//100, verbose_every=10, save_every=100)
+    agent.learn(steps=200, verbose_every=10, save_every=100)
 
-    agent.exp_train_source.play_episode()
-    env.render_vs_true(po=True)
+    # agent.exp_train_source.play_episode()
+    # env.render_vs_true(po=True)
     env.render(["dv"])
-    agent.plot_performance(["entropy_loss"])
-    agent.plot_performance(["mean_rewards"])
-    agent.plot_performance(["total_rewards"])
-    agent.plot_performance(["total_loss"])
+    # agent.plot_performance(["entropy_loss"])
+    # agent.plot_performance(["mean_rewards"])
+    # agent.plot_performance(["total_rewards"])
+    # agent.plot_performance(["total_loss"])
 
 
 

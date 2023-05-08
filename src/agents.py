@@ -121,7 +121,8 @@ class Agent(AgentABC):
         verbose_every: Optional[int] = 0,
         save_every: Optional[int] = 0,
     ):
-
+        self.step_idx = 0
+        self.counter_step = 0
         for _ in tqdm(range(steps)):
             # self.counter_step += 1
             batch = self._prepare_batch()
