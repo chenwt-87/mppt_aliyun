@@ -21,6 +21,8 @@ def read_his_data_csv(path: str) -> pd.DataFrame:
     logger.info(f"Reading {path} . . .")
     df = pd.read_csv(path, index_col=0)
     df = df[df['label'].isin([18, 19, 167])]
+    # 打乱df 顺序
+    df = df.sample(frac=1).reset_index(drop=True)
     return df
 
 

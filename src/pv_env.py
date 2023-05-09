@@ -50,6 +50,7 @@ class PVEnvBase(gym.Env):
         pvarray = PVArray.from_json(pv_params_path, ckp_path=pvarray_ckp_path, data_from_gateway_path=his_data_path)
         his_data = read_his_data_csv(his_data_path)
         his_data['power'] = his_data.apply(lambda x: x['voltage'] * x['current'] / 1e6, axis=1)
+
         pv_environment = cls(pvarray, his_data, **kwargs)
         return pv_environment
 
@@ -110,7 +111,7 @@ class PVEnv(PVEnvBase):
         dv = pv_v_curve_mpp-v
         #   self._store_step 中获取当前温度和光照， 并通过查历史数据 或者 matlab仿真，得到电流，功率，
         #   返回【v_norm,i_norm,dv】
-        obs0 = np.array([v, i, dv])
+        obs0 = np.array([v/self.pvarray.voc, i/self.pvarray.isc, dv/self.pvarray.voc])
 
         # env_train 和 env_test 初始化的时候，会生成两个obs0
         # print('obs   set', obs0)

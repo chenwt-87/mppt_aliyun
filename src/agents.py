@@ -124,7 +124,7 @@ class Agent(AgentABC):
     ):
         self.env.step_idx = 0
         self.env.counter_step = 0
-        writer = SummaryWriter()
+        writer = SummaryWriter(comment='comment')
         for _ in tqdm(range(steps)):
             self.counter_step += 1
             batch = self._prepare_batch()
@@ -144,13 +144,41 @@ class Agent(AgentABC):
                         f"steps/ep={self.steps_per_ep}, ",
                         f"episodes={self.counter_ep}",
                     )
-                    writer.add_scalar(tag="loss/train", scalar_value=self.total_loss,
-                                      global_step=self.counter_step)
+                writer.add_scalar(tag="train_log/total_loss", scalar_value=self.total_loss,
+                                  global_step=self.counter_step)
+                writer.add_scalar(tag="train_log/mean_reward", scalar_value=self.mean_reward,
+                                  global_step=self.counter_step)
+                # writer.add_scalar(tag="train_log/hist_total_rew", scalar_value=self.hist_total_rew,
+                #                   global_step=self.counter_step)
+                writer.add_scalar(tag="train_log/entropy_loss", scalar_value=self.entropy_loss,
+                                  global_step=self.counter_step)
+                writer.add_scalar(tag="train_log/policy_loss", scalar_value=self.policy_loss,
+                                  global_step=self.counter_step)
+                writer.add_scalar(tag="train_log/value_loss", scalar_value=self.value_loss,
+                                  global_step=self.counter_step)
+                actor_weight = self.net.actor.weight
+                writer.add_histogram("actor_weight", actor_weight, self.counter_step)
+                actor_bias = self.net.actor.bias
+                writer.add_histogram("actor_bias", actor_bias, self.counter_step)
+                critic_weight = self.net.critic.weight
+                writer.add_histogram("critic_weight", critic_weight, self.counter_step)
+                critic_bias = self.net.critic.bias
+                writer.add_histogram("critic_bias", critic_bias, self.counter_step)
+
+                critic_weight_grad = self.net.critic.weight.grad
+                writer.add_histogram("critic_weight_grad", critic_weight_grad, self.counter_step)
+                actor_weight_grad = self.net.actor.weight.grad
+                writer.add_histogram("actor_weight_grad", actor_weight_grad, self.counter_step)
+
+                critic_bias_grad = self.net.critic.bias.grad
+                writer.add_histogram("critic_bias_grad", critic_bias_grad, self.counter_step)
+                actor_bias_grad = self.net.actor.bias.grad
+                writer.add_histogram("actor_bias_grad", actor_bias_grad, self.counter_step)
 
             if save_every and self.chk_path:
                 if self.counter_step % save_every == 0:
                     self.save()
-
+        writer.close()
         if self.chk_path:
             self.save()
 

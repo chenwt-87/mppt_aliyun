@@ -1,7 +1,7 @@
 import os
 
 import torch
-
+from torch.utils.tensorboard import SummaryWriter
 
 # 建立一个保存数据用的东西，save是输出的文件名
 
@@ -28,18 +28,12 @@ GAMMA = 0.96
 N_STEPS = 1
 BATCH_SIZE = 10
 
-# dummy_input = torch.rand(BATCH_SIZE, 3)  # 网络中输入的数据维度
-# net = 'test'
-# with SummaryWriter(comment='LeNet') as w:
-#     w.add_graph(net, (dummy_input,))  # net是你的网络名
-
-
 if __name__ == "__main__":
     env = PVEnvDiscrete.from_file(
         PV_PARAMS_PATH,  # 光伏组件参数
         HiS_DATA_PATH,  # 光伏组件历史数据
         pvarray_ckp_path=PVARRAY_CKP_PATH,  # 训练过程数据存储
-        states=["v", "i", 'dv'],  # 训练输入，可以有多种组合
+        states=["v_norm", "i_norm", 'dv'],  # 训练输入，可以有多种组合
         # reward_fn=RewardDeltaPowerVoltage(2, 0.9, 1),  # 奖励函数
         reward_fn=RewardDeltaPower(2, 2),
         actions=[-10, -5, -3, -2, -1, -0.1, 0, 0.1, 1, 2, 3, 5, 10],  # 策略函数
@@ -48,7 +42,7 @@ if __name__ == "__main__":
         PV_PARAMS_PATH,
         HiS_DATA_PATH,
         pvarray_ckp_path=PVARRAY_CKP_PATH,
-        states=["v", "i"],
+        states=["v_norm", "i_norm", 'dv'],
         # reward_fn=RewardDeltaPowerVoltage(2, 0.9, 1),
         reward_fn=RewardDeltaPower(2, 0.9),
         actions=[-10, -5, -3, -2, -1, -0.1, 0, 0.1, 1, 2, 3, 5, 10],
@@ -57,6 +51,9 @@ if __name__ == "__main__":
     net = DiscreteActorCriticNetwork(
         input_size=env.observation_space.shape[0], n_actions=env.action_space.n
     ).to(device)
+    dummy_input = torch.rand(16, 3)   # 假设输入13张1*28*28的图片
+    graph = SummaryWriter()
+    graph.add_graph(net, dummy_input)
     agent = DiscreteActorCritic(
         env=env,
         test_env=test_env,
@@ -75,10 +72,7 @@ if __name__ == "__main__":
     # agent.learn(steps=env.pv_gateway_history.shape[0], verbose_every=10, save_every=100)
     agent.learn(steps=1000, verbose_every=10, save_every=100)
 
-    # agent.exp_train_source.play_episode()
-    # env.render_vs_true(po=True)
-    # env.render(["v_pv"])
-    # agent.plot_performance(["entropy_loss"])
-    # agent.plot_performance(["mean_rewards"])
-    # agent.plot_performance(["total_rewards"])
-    # agent.plot_performance(["total_loss"])
+    agent.exp_train_source.play_episode()
+    env.render_vs_true(po=True)
+    env.render(["v_pv"])
+
