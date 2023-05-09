@@ -9,6 +9,7 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 import os
 import math
+from torch.utils.tensorboard import SummaryWriter
 
 from src.experience import ExperienceSorceDiscountedSteps
 from src.policies import (
@@ -121,10 +122,11 @@ class Agent(AgentABC):
         verbose_every: Optional[int] = 0,
         save_every: Optional[int] = 0,
     ):
-        self.step_idx = 0
-        self.counter_step = 0
+        self.env.step_idx = 0
+        self.env.counter_step = 0
+        writer = SummaryWriter()
         for _ in tqdm(range(steps)):
-            # self.counter_step += 1
+            self.counter_step += 1
             batch = self._prepare_batch()
             # batch [obs,action, reward]
             # reward 为 target_values,
@@ -137,11 +139,13 @@ class Agent(AgentABC):
                 if self.counter_step % verbose_every == 0:
                     print(
                         "\n",
-                        f"{self.counter_step}: loss={self.total_loss:.6f}, ",
+                        f"{ self.counter_step}: loss={self.total_loss:.6f}, ",
                         f"mean reward={self.mean_reward:.2f}, ",
                         f"steps/ep={self.steps_per_ep}, ",
                         f"episodes={self.counter_ep}",
                     )
+                    writer.add_scalar(tag="loss/train", scalar_value=self.total_loss,
+                                      global_step=self.counter_step)
 
             if save_every and self.chk_path:
                 if self.counter_step % save_every == 0:

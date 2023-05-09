@@ -7,6 +7,7 @@ def inter1pd_iv_curve(v_near, data):
     ydata = data.current.values
     func = interp1d(xdata, ydata, kind='linear', fill_value="extrapolate")
     if v_near > xdata.max() or v_near < xdata.min():
+        print('电压月线图')
         return 0
     x_new = np.linspace(start=v_near-100, stop=v_near+100, num=10)
     y_new = func(x_new)

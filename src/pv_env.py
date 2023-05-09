@@ -107,22 +107,44 @@ class PVEnv(PVEnvBase):
         # v 已经曲线上， 获取i
         # i = 0.8 * self.pvarray.isc
         i = self.pv_gateway_history.at[idx, 'current'] / 1000
+        dv = pv_v_curve_mpp-v
         #   self._store_step 中获取当前温度和光照， 并通过查历史数据 或者 matlab仿真，得到电流，功率，
         #   返回【v_norm,i_norm,dv】
-        obs0 = self._store_step(v, i, pv_v_curve_mpp, pv_i_curve_mpp, v, i, idx, False)
+        obs0 = np.array([v, i, dv])
+
         # env_train 和 env_test 初始化的时候，会生成两个obs0
-        print('obs   set', obs0)
+        # print('obs   set', obs0)
         # self.pvarray.READ_SENSOR_TIME -= 1
         return obs0, num_pv_curve
 
     def reset(self) -> np.ndarray:
         self.history = History()
+        self.history.p.append(0.0)
+        self.history.v.append(0.0)
+        self.history.v_pv.append(0.0)
+        self.history.dp_act.append(0.0)
+        self.history.i.append(0.0)
+        # 无法获取气温和辐照，历史数据中不再存储之。
+        # self.history.g.append(g)
+        # self.history.t.append(t)
+        self.history.p_norm.append(0.0)
+        self.history.v_norm.append(0.0)
+        self.history.i_norm.append(0.0)
+        # self.history.g_norm.append(g / G_MAX)
+
+        # self.history.dp.append(0.0)
+        self.history.dv.append(0.0)
+        self.history.dv_set2pv.append(0.0)
+        self.history.di.append(0.0)
+        self.history.deg.append(0.0)
+        self.history.dp_norm.append(0.0)
+        self.history.dv_norm.append(0.0)
         # counter_step 表示总的循环次数， step_idx表示历史数据的编号，会循环望夫
         # self.counter_step
         self.step_idx = 0
         self.done = False
         # 随机取了历史数据中一个点
-        #idx = random.randint(0, self.pv_gateway_history.shape[0])
+        # idx = random.randint(0, self.pv_gateway_history.shape[0])
         idx = 0
         return self.set_obs(idx)
 
@@ -158,16 +180,17 @@ class PVEnv(PVEnvBase):
 
         v = np.clip(pv_v + delta_v, 22, self.pvarray.voc)
 
-        i = inter1pd_iv_curve(1000*v, self.pv_gateway_history[self.pv_gateway_history['label'] == pv_curve_idx])
+        i = inter1pd_iv_curve(1000 * v, self.pv_gateway_history[self.pv_gateway_history['label'] == pv_curve_idx])
         if i > self.pvarray.isc:
             print('拟合的电流：', i)
             i = 0
-        print('\n ======= ,原始数据-- {}, v--{}, i-{},delta_v={}, action={}, v = {}, 拟合 i ={} pv_mmp_v:{} pv_mmp_i: {}'.format(
-            max(self.step_idx - 1, 0), pv_v, pv_i, delta_v, action, v, i, pv_v_curve_now_mpp, pv_i_curve_now_mpp))
+        print(
+            '\n ======= ,原始数据-- {}, v--{}, i-{},delta_v={}, action={}, v = {}, 拟合 i ={} pv_mmp_v:{} pv_mmp_i: {}'.format(
+                max(self.step_idx - 1, 0), pv_v, pv_i, delta_v, action, v, i, pv_v_curve_now_mpp, pv_i_curve_now_mpp))
         # 依据 v， 通过历史数据或者matlab仿真，得到 obs
         # self.history() 赋值
         obs = \
-            self._store_step(v, i, pv_v_curve_now_mpp, pv_i_curve_now_mpp, pv_v, pv_i, self.step_idx-1, True)
+            self._store_step(v, i, pv_v_curve_now_mpp, pv_i_curve_now_mpp, pv_v, pv_i, self.step_idx - 1, True)
         self.pvarray.curve_num = self.pv_gateway_history.at[max(self.step_idx - 1, 0), 'label']
         #  obs ['v_norm', 'i_norm', 'dv']
         """
@@ -191,7 +214,7 @@ class PVEnv(PVEnvBase):
 
     def render(self, vars: List[str]) -> None:
         for var in vars:
-            if var in ["dp", "dv"]:
+            if var in ["dp", "dv", 'v_pv']:
                 plt.hist(getattr(self.history, var), label=var)
             else:
                 plt.plot(getattr(self.history, var), label=var)
@@ -210,7 +233,7 @@ class PVEnv(PVEnvBase):
                 tag = self.pv_gateway_history.at[idx, 'label']
                 idx_mpp = self.pv_gateway_history[self.pv_gateway_history['label'] == tag]['power'].idxmax()
                 p_po.append(self.pv_gateway_history.at[idx_mpp, 'power'])
-                v_po.append(self.pv_gateway_history.at[idx_mpp, 'voltage']/1000)
+                v_po.append(self.pv_gateway_history.at[idx_mpp, 'voltage'] / 1000)
         # plt.plot(p_real, label="P Max")
         plt.figure(figsize=[20, 6])
         plt.plot(self.history.p, label="P RL")
@@ -232,10 +255,11 @@ class PVEnv(PVEnvBase):
         logger.info(f"RL V_ MAE={PVArray.mppt_mae(v_po, self.history.v)}")
         logger.info(f"RL V_ MAPE={PVArray.mppt_mape(v_po, self.history.v)}")
 
-    def _add_history(self, p, v, v_pv, i) -> None:
+    def _add_history(self, p, v, v_pv, i, dp_act) -> None:
         self.history.p.append(p)
         self.history.v.append(v)
         self.history.v_pv.append(v_pv)
+        self.history.dp_act.append(dp_act)
         self.history.i.append(i)
         # 无法获取气温和辐照，历史数据中不再存储之。
         # self.history.g.append(g)
@@ -247,7 +271,7 @@ class PVEnv(PVEnvBase):
         # self.history.t_norm.append(t / T_MAX)
 
         if len(self.history.p) < 2:
-            self.history.dp.append(0.0)
+            # self.history.dp.append(0.0)
             self.history.dv.append(0.0)
             self.history.dv_set2pv.append(0.0)
             self.history.di.append(0.0)
@@ -255,7 +279,7 @@ class PVEnv(PVEnvBase):
             self.history.dp_norm.append(0.0)
             self.history.dv_norm.append(0.0)
         else:
-            self.history.dp.append(self.history.p[-1] - self.history.p[-2])
+            # self.history.dp.append(self.history.p[-1] - self.history.p[-2])
             self.history.dv.append(self.history.v[-1] - self.history.v[-2])
             # 计算设定电压值和组件电压值之间之差
             self.history.dv_set2pv.append(abs(self.history.v[-1] - self.history.v_pv[-1]))
@@ -293,14 +317,16 @@ class PVEnv(PVEnvBase):
             dtype=np.float32,
         )
 
-    def _store_step(self, v: float, i: float, p_v_max: float, p_i_max: float, p_v_org: float, p_i_org: float, idx, set_flag) -> np.ndarray:
+    def _store_step(self, v: float, i: float, p_v_max: float, p_i_max: float, p_v_org: float, p_i_org: float, idx,
+                    set_flag) -> np.ndarray:
         # g, t = 1000, 25
         # 从串口 或者 zigbee 获取数
         # v 为Actor输出的电压
         p, _, self.v_pv, self.i = self.pvarray.simulate(v, i, p_v_max, p_i_max, p_v_org, p_i_org, idx, set_flag)
         # 组件 实际的电压v_pv
-        if not set_flag:
-            self._add_history(p=p, v=v, v_pv=self.v_pv, i=i)
+        dp_act = p - p_v_org * p_i_org
+        if set_flag:
+            self._add_history(p=p, v=v, v_pv=v-p_v_org, i=i, dp_act=dp_act)
 
         # getattr(handler.request, 'GET') is the same as handler.request.GET
         # print('test  g,t,v',   np.array([getattr(self.history, state)[-1] for state in self.states]))

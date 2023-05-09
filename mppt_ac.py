@@ -2,17 +2,21 @@ import os
 
 import torch
 
+
+# 建立一个保存数据用的东西，save是输出的文件名
+
 from src.agents import DiscreteActorCritic
 from src.networks import DiscreteActorCriticNetwork
 from src.pv_env import History, PVEnvDiscrete
 from src.reward import RewardDeltaPower
 from src.reward import RewardDeltaPowerVoltage
 import time
+
 # READ_SENSOR_TIME = 0
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
-MODULE_NAME = "model_real_616.tar"
+MODULE_NAME = "model_real_617.tar"
 PV_PARAMS_PATH = os.path.join("parameters", "614_pvarray.json")
 CHECKPOINT_PATH = os.path.join("models", MODULE_NAME)
 PVARRAY_CKP_PATH = os.path.join("data", "051_pvarray_iv.json")
@@ -20,27 +24,31 @@ PVARRAY_CKP_PATH = os.path.join("data", "051_pvarray_iv.json")
 HiS_DATA_PATH = os.path.join("data", "600W_train_data.csv")
 LEARNING_RATE = 0.001
 ENTROPY_BETA = 0.002
-GAMMA = 0.9
+GAMMA = 0.96
 N_STEPS = 1
-BATCH_SIZE = 16
+BATCH_SIZE = 10
+
+# dummy_input = torch.rand(BATCH_SIZE, 3)  # 网络中输入的数据维度
+# net = 'test'
+# with SummaryWriter(comment='LeNet') as w:
+#     w.add_graph(net, (dummy_input,))  # net是你的网络名
 
 
 if __name__ == "__main__":
-
     env = PVEnvDiscrete.from_file(
         PV_PARAMS_PATH,  # 光伏组件参数
-        HiS_DATA_PATH,   # 光伏组件历史数据
+        HiS_DATA_PATH,  # 光伏组件历史数据
         pvarray_ckp_path=PVARRAY_CKP_PATH,  # 训练过程数据存储
-        states=["v", "i", "p"],  # 训练输入，可以有多种组合
+        states=["v", "i", 'dv'],  # 训练输入，可以有多种组合
         # reward_fn=RewardDeltaPowerVoltage(2, 0.9, 1),  # 奖励函数
-        reward_fn=RewardDeltaPower(2, 0.9),
+        reward_fn=RewardDeltaPower(2, 2),
         actions=[-10, -5, -3, -2, -1, -0.1, 0, 0.1, 1, 2, 3, 5, 10],  # 策略函数
     )
     test_env = PVEnvDiscrete.from_file(
         PV_PARAMS_PATH,
         HiS_DATA_PATH,
         pvarray_ckp_path=PVARRAY_CKP_PATH,
-        states=["v", "i", "p"],
+        states=["v", "i"],
         # reward_fn=RewardDeltaPowerVoltage(2, 0.9, 1),
         reward_fn=RewardDeltaPower(2, 0.9),
         actions=[-10, -5, -3, -2, -1, -0.1, 0, 0.1, 1, 2, 3, 5, 10],
@@ -65,16 +73,12 @@ if __name__ == "__main__":
     # 训练模型
     # env.pv_gateway_history.shape[0]
     # agent.learn(steps=env.pv_gateway_history.shape[0], verbose_every=10, save_every=100)
-    agent.learn(steps=200, verbose_every=10, save_every=100)
+    agent.learn(steps=1000, verbose_every=10, save_every=100)
 
     # agent.exp_train_source.play_episode()
     # env.render_vs_true(po=True)
-    env.render(["dv"])
+    # env.render(["v_pv"])
     # agent.plot_performance(["entropy_loss"])
     # agent.plot_performance(["mean_rewards"])
     # agent.plot_performance(["total_rewards"])
     # agent.plot_performance(["total_loss"])
-
-
-
-

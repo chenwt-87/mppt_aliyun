@@ -46,6 +46,27 @@ class ExperienceSorce:
         # self.obs = new_obs
         return Experience(state=obs, action=action, reward=reward, last_state=new_obs)
 
+    def play_step_pred(self):
+        if self.done:
+            # reset 函数在 pv_env.py 89 行
+            self.obs, self.env.pvarray.curve_num = self.env.reset()
+            self.done = False
+        # obs =  ['v_norm', 'i_norm', 'dv']
+        self.obs, self.env.pvarray.curve_num = self.env.set_obs(self.env.step_idx)
+        obs = self.obs
+        curve_num = self.env.pvarray.curve_num
+        # 基于obs，计算当前状态，进入到网络结构  转入policies.py line 46 行
+        action = self.policy(obs)
+        # 基于action 【int】，选择电压增量，计算新的状态和 reward , 调用  pv_env.py  line 97 的 step(函数)
+        new_obs, reward, done, _ = self.env.my_step(action, curve_num)
+        if self.render:
+            self.env.render()
+        if done:
+            self.done = True
+            return Experience(state=new_obs, action=action, reward=reward, last_state=None)
+        # self.obs = new_obs
+        return Experience(state=new_obs, action=action, reward=reward, last_state=new_obs)
+
     def play_episode(self):
         ep_history = []
         self.obs, self.env.pvarray.curve_num = self.env.reset()
@@ -116,7 +137,7 @@ class ExperienceSorceDiscounted(ExperienceSorce):
         for step_idx in range(self.max_steps):
 
             self.env.counter_step += 1
-            exp = self.play_step()
+            exp = self.play_step_pred()
             # print('依据网络计,', exp, step_idx)
             reward += exp.reward
             discounted_reward += exp.reward * self.gamma ** (step_idx)
