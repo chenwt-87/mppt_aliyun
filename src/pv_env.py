@@ -253,14 +253,14 @@ class PVEnv(PVEnvBase):
                 v_po.append(self.pv_gateway_history.at[idx_mpp, 'voltage'] / 1000)
         # plt.plot(p_real, label="P Max")
         plt.figure(figsize=[20, 6])
-        plt.plot(self.history.p, label="P RL")
+        plt.plot(self.history.p, 'o', markersize=1, label="P RL")
         if po:
             plt.plot(p_po, label="P P&O")
         plt.legend()
         plt.savefig('img/效果P--{}.jpg'.format(source_tag))
         # plt.plot(v_real, label="Vmpp")
         plt.figure(figsize=[20, 6])
-        plt.plot(self.history.v, label="V RL")
+        plt.plot(self.history.v, 'o', markersize=1, label="V RL")
         if po:
             plt.plot(v_po, label="V P&O")
         plt.legend()

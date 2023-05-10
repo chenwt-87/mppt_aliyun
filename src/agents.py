@@ -167,23 +167,23 @@ class Agent(AgentABC):
                 net_bias_grad = self.net.net[0].bias.grad
                 writer.add_histogram("net_bias_grad", net_bias_grad, self.counter_step)
 
-                actor_weight = self.net.actor.weight
+                actor_weight = self.net.actor[0].weight
                 writer.add_histogram("actor_weight", actor_weight, self.counter_step)
-                actor_bias = self.net.actor.bias
+                actor_bias = self.net.actor[0].bias
                 writer.add_histogram("actor_bias", actor_bias, self.counter_step)
-                critic_weight = self.net.critic.weight
+                critic_weight = self.net.critic[0].weight
                 writer.add_histogram("critic_weight", critic_weight, self.counter_step)
-                critic_bias = self.net.critic.bias
+                critic_bias = self.net.critic[0].bias
                 writer.add_histogram("critic_bias", critic_bias, self.counter_step)
 
-                critic_weight_grad = self.net.critic.weight.grad
+                critic_weight_grad = self.net.critic[0].weight.grad
                 writer.add_histogram("critic_weight_grad", critic_weight_grad, self.counter_step)
-                actor_weight_grad = self.net.actor.weight.grad
+                actor_weight_grad = self.net.actor[0].weight.grad
                 writer.add_histogram("actor_weight_grad", actor_weight_grad, self.counter_step)
 
-                critic_bias_grad = self.net.critic.bias.grad
+                critic_bias_grad = self.net.critic[0].bias.grad
                 writer.add_histogram("critic_bias_grad", critic_bias_grad, self.counter_step)
-                actor_bias_grad = self.net.actor.bias.grad
+                actor_bias_grad = self.net.actor[0].bias.grad
                 writer.add_histogram("actor_bias_grad", actor_bias_grad, self.counter_step)
 
             if save_every and self.chk_path:

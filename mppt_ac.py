@@ -16,7 +16,7 @@ import time
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
-MODULE_NAME = "model_real_617.tar"
+MODULE_NAME = "model_real_6199.tar"
 PV_PARAMS_PATH = os.path.join("parameters", "614_pvarray.json")
 CHECKPOINT_PATH = os.path.join("models", MODULE_NAME)
 PVARRAY_CKP_PATH = os.path.join("data", "051_pvarray_iv.json")
@@ -37,8 +37,8 @@ if __name__ == "__main__":
         mode='Train',
         states=["v_norm", "i_norm", 'v_pv'],
         # states=["v", "i", 'v_pv'],# 训练输入，可以有多种组合
-        # reward_fn=RewardDeltaPowerVoltage(2, 0.9, 1),  # 奖励函数
-        reward_fn=RewardDeltaPower(4, 2),
+        reward_fn=RewardDeltaPowerVoltage(2, 0.9, 1),  # 奖励函数
+        # reward_fn=RewardDeltaPower(4, 2),
         actions=[-10, -5, -3, -2, -1, -0.1, 0, 0.1, 1, 2, 3, 5, 10],  # 策略函数
     )
     test_env = PVEnvDiscrete.from_file(
@@ -48,8 +48,8 @@ if __name__ == "__main__":
         mode='Test',
         states=["v_norm", "i_norm", 'v_pv'],
         # states=["v", "i", 'v_pv'],  # 训练输入，可以有多种组合
-        # reward_fn=RewardDeltaPowerVoltage(2, 0.9, 1),
-        reward_fn=RewardDeltaPower(4, 2),
+        reward_fn=RewardDeltaPowerVoltage(2, 0.9, 1),
+        # reward_fn=RewardDeltaPower(4, 2),
         actions=[-10, -5, -3, -2, -1, -0.1, 0, 0.1, 1, 2, 3, 5, 10],
     )
     device = torch.device("cpu")
@@ -75,7 +75,7 @@ if __name__ == "__main__":
     # 训练模型
     # env.pv_gateway_history.shape[0]
     # agent.learn(steps=env.pv_gateway_history.shape[0], verbose_every=10, save_every=100)
-    # agent.learn(steps=1000, verbose_every=100, save_every=100)
+    agent.learn(steps=2000, verbose_every=100, save_every=100)
 
     agent.exp_test_source.play_episode()
     test_env.render_vs_true(po=True, source_tag='test')

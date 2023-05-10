@@ -53,7 +53,10 @@ class DiscreteCategoricalDistributionPolicy(BasePolicy):
 
         if self.apply_softmax:
             probs_t = F.softmax(probs_t, dim=1)
+        # try:
         probs_dist = torch.distributions.Categorical(probs_t)
+        # except:
+        #     print(-1)
         # sample 函数，依据概率进行抽样
         if self.add_batch_dim:
             return probs_dist.sample().cpu().numpy()[0]

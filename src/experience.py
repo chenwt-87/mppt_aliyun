@@ -35,7 +35,10 @@ class ExperienceSorce:
         obs = self.obs
         curve_num = self.env.pvarray.curve_num
         # 基于obs，计算当前状态，进入到网络结构  转入policies.py line 46 行
+
         action = self.policy(obs)
+        # except:
+        #     print(-1)
         # 基于action 【int】，选择电压增量，计算新的状态和 reward , 调用  pv_env.py  line 97 的 step(函数)
         new_obs, reward, done, _ = self.env.step(action, curve_num)
         if self.render:
@@ -111,7 +114,7 @@ class ExperienceSorceDiscounted(ExperienceSorce):
         reward = 0.0
         self.env.counter_step += 1
         for step_idx in range(self.max_steps):
-            print(step_idx)
+            # print(step_idx)
             exp = self.play_step()
             # print('依据网络计,', exp, step_idx)
             reward += exp.reward
