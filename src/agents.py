@@ -91,7 +91,7 @@ class Agent(AgentABC):
         else:
             raise ValueError("Only `adam` is supported")
         self.policy = self._get_train_policy()
-        self.test_policy = self._get_test_policy()
+        self.test_policy = self._get_train_policy()
         self.exp_train_source = ExperienceSorceDiscountedSteps(
             env=env,
             policy=self.policy,
@@ -156,6 +156,17 @@ class Agent(AgentABC):
                                   global_step=self.counter_step)
                 writer.add_scalar(tag="train_log/value_loss", scalar_value=self.value_loss,
                                   global_step=self.counter_step)
+
+                net_weight = self.net.net[0].weight
+                writer.add_histogram("net_weight", net_weight, self.counter_step)
+                net_bias = self.net.net[0].bias
+                writer.add_histogram("net_bias", net_bias, self.counter_step)
+
+                net_weight_grad = self.net.net[0].weight.grad
+                writer.add_histogram("net_weight_grad", net_weight_grad, self.counter_step)
+                net_bias_grad = self.net.net[0].bias.grad
+                writer.add_histogram("net_bias_grad", net_bias_grad, self.counter_step)
+
                 actor_weight = self.net.actor.weight
                 writer.add_histogram("actor_weight", actor_weight, self.counter_step)
                 actor_bias = self.net.actor.bias

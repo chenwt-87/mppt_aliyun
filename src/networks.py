@@ -12,8 +12,11 @@ class DiscreteActorCriticNetwork(nn.Module):
             nn.Linear(input_size, 128),
             nn.ReLU(),
         )
+        torch.nn.init.normal_(self.net[0].weight, mean=0, std=1)  #
         self.actor = nn.Linear(128, n_actions)
+        torch.nn.init.normal_(self.actor.weight, mean=0, std=1)  #
         self.critic = nn.Linear(128, 1)
+        torch.nn.init.normal_(self.critic.weight, mean=0, std=1)  #
 
     # 由于每一个神经网络模块都继承于nn.Module，因此都会实现__call__与forward函数，
     # 所以forward函数中通过for循环依次调用添加到现有模块中的子模块，最后输出经过所有神经网络层的结果。

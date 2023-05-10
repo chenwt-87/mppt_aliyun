@@ -37,13 +37,14 @@ class ExperienceSorce:
         # 基于obs，计算当前状态，进入到网络结构  转入policies.py line 46 行
         action = self.policy(obs)
         # 基于action 【int】，选择电压增量，计算新的状态和 reward , 调用  pv_env.py  line 97 的 step(函数)
-        new_obs, reward, done, _ = self.env.my_step(action, curve_num)
+        new_obs, reward, done, _ = self.env.step(action, curve_num)
         if self.render:
             self.env.render()
         if done:
             self.done = True
             return Experience(state=obs, action=action, reward=reward, last_state=None)
-        # self.obs = new_obs
+        # new_obs 执行策略后达到的状态
+        # obs_是原始状态
         return Experience(state=obs, action=action, reward=reward, last_state=new_obs)
 
     def play_step_pred(self):
@@ -58,7 +59,7 @@ class ExperienceSorce:
         # 基于obs，计算当前状态，进入到网络结构  转入policies.py line 46 行
         action = self.policy(obs)
         # 基于action 【int】，选择电压增量，计算新的状态和 reward , 调用  pv_env.py  line 97 的 step(函数)
-        new_obs, reward, done, _ = self.env.my_step(action, curve_num)
+        new_obs, reward, done, _ = self.env.step(action, curve_num)
         if self.render:
             self.env.render()
         if done:

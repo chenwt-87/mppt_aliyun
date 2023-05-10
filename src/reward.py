@@ -1,3 +1,5 @@
+import numpy as np
+
 from src.common import History
 
 
@@ -61,9 +63,9 @@ class RewardDeltaPower:
         # return history.p[-1]
         dp = history.dp_act[-1]
         if dp < 0:
-            return self.a * dp
+            return self.a * np.power(dp, 3)
         else:
-            return self.b * dp
+            return self.b * np.power(dp, 3)
 
 
 class RewardPower:

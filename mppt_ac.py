@@ -21,37 +21,42 @@ PV_PARAMS_PATH = os.path.join("parameters", "614_pvarray.json")
 CHECKPOINT_PATH = os.path.join("models", MODULE_NAME)
 PVARRAY_CKP_PATH = os.path.join("data", "051_pvarray_iv.json")
 # 这个历史数据集里面，包含很多个辐照条件下的MPP，但是一个辐照下面的非MPP点太少，导致训练样本不够。
-HiS_DATA_PATH = os.path.join("data", "600W_train_data.csv")
+HiS_DATA_PATH_TRAIN = os.path.join("data", "600W_train_data_train.csv")
+HiS_DATA_PATH_TEST = os.path.join("data", "600W_train_data_test.csv")
 LEARNING_RATE = 0.001
 ENTROPY_BETA = 0.002
-GAMMA = 0.96
+GAMMA = 0.95
 N_STEPS = 1
-BATCH_SIZE = 10
+BATCH_SIZE = 16
 
 if __name__ == "__main__":
     env = PVEnvDiscrete.from_file(
         PV_PARAMS_PATH,  # 光伏组件参数
-        HiS_DATA_PATH,  # 光伏组件历史数据
+        HiS_DATA_PATH_TRAIN,  # 光伏组件历史数据
         pvarray_ckp_path=PVARRAY_CKP_PATH,  # 训练过程数据存储
-        states=["v_norm", "i_norm", 'dv'],  # 训练输入，可以有多种组合
+        mode='Train',
+        states=["v_norm", "i_norm", 'v_pv'],
+        # states=["v", "i", 'v_pv'],# 训练输入，可以有多种组合
         # reward_fn=RewardDeltaPowerVoltage(2, 0.9, 1),  # 奖励函数
-        reward_fn=RewardDeltaPower(2, 2),
+        reward_fn=RewardDeltaPower(4, 2),
         actions=[-10, -5, -3, -2, -1, -0.1, 0, 0.1, 1, 2, 3, 5, 10],  # 策略函数
     )
     test_env = PVEnvDiscrete.from_file(
         PV_PARAMS_PATH,
-        HiS_DATA_PATH,
+        HiS_DATA_PATH_TEST,
         pvarray_ckp_path=PVARRAY_CKP_PATH,
-        states=["v_norm", "i_norm", 'dv'],
+        mode='Test',
+        states=["v_norm", "i_norm", 'v_pv'],
+        # states=["v", "i", 'v_pv'],  # 训练输入，可以有多种组合
         # reward_fn=RewardDeltaPowerVoltage(2, 0.9, 1),
-        reward_fn=RewardDeltaPower(2, 0.9),
+        reward_fn=RewardDeltaPower(4, 2),
         actions=[-10, -5, -3, -2, -1, -0.1, 0, 0.1, 1, 2, 3, 5, 10],
     )
     device = torch.device("cpu")
     net = DiscreteActorCriticNetwork(
         input_size=env.observation_space.shape[0], n_actions=env.action_space.n
     ).to(device)
-    dummy_input = torch.rand(16, 3)   # 假设输入13张1*28*28的图片
+    dummy_input = torch.rand(16, 3)  # 假设输入13张1*28*28的图片
     graph = SummaryWriter()
     graph.add_graph(net, dummy_input)
     agent = DiscreteActorCritic(
@@ -70,9 +75,14 @@ if __name__ == "__main__":
     # 训练模型
     # env.pv_gateway_history.shape[0]
     # agent.learn(steps=env.pv_gateway_history.shape[0], verbose_every=10, save_every=100)
-    agent.learn(steps=1000, verbose_every=10, save_every=100)
+    # agent.learn(steps=1000, verbose_every=100, save_every=100)
+
+    agent.exp_test_source.play_episode()
+    test_env.render_vs_true(po=True, source_tag='test')
+    test_env.render(["dv"], 'test')
+    test_env.render(['dp_act'], 'test')
 
     agent.exp_train_source.play_episode()
-    env.render_vs_true(po=True)
-    env.render(["v_pv"])
-
+    env.render_vs_true(po=True, source_tag='train')
+    env.render(["dv"], 'train')
+    env.render(['dp_act'], 'train')
