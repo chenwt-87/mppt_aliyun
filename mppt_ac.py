@@ -23,11 +23,11 @@ PVARRAY_CKP_PATH = os.path.join("data", "051_pvarray_iv.json")
 # 这个历史数据集里面，包含很多个辐照条件下的MPP，但是一个辐照下面的非MPP点太少，导致训练样本不够。
 HiS_DATA_PATH_TRAIN = os.path.join("data", "600W_train_data_train.csv")
 HiS_DATA_PATH_TEST = os.path.join("data", "600W_train_data_test.csv")
-LEARNING_RATE = 0.001
+LEARNING_RATE = 0.0001
 ENTROPY_BETA = 0.002
 GAMMA = 0.95
 N_STEPS = 1
-BATCH_SIZE = 16
+BATCH_SIZE = 20
 
 if __name__ == "__main__":
     env = PVEnvDiscrete.from_file(
@@ -79,10 +79,10 @@ if __name__ == "__main__":
 
     agent.exp_test_source.play_episode()
     test_env.render_vs_true(po=True, source_tag='test')
-    test_env.render(["dv"], 'test')
-    test_env.render(['dp_act'], 'test')
+    test_env.render(["v_pv", 'dp_act'], 'test')
 
-    agent.exp_train_source.play_episode()
-    env.render_vs_true(po=True, source_tag='train')
-    env.render(["dv"], 'train')
-    env.render(['dp_act'], 'train')
+
+    # agent.exp_train_source.play_episode()
+    # env.render_vs_true(po=True, source_tag='train')
+    # env.render(["dv"], 'train')
+    # env.render(['dp_act'], 'train')

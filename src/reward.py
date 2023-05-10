@@ -63,9 +63,9 @@ class RewardDeltaPower:
         # return history.p[-1]
         dp = history.dp_act[-1]
         if dp < 0:
-            return self.a * np.power(dp, 3)
+            return self.a * dp/1000
         else:
-            return self.b * np.power(dp, 3)
+            return self.b * dp/1000
 
 
 class RewardPower:

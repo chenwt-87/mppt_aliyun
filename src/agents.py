@@ -337,22 +337,27 @@ class Agent(AgentABC):
             else:
                 dones.append(False)
                 last_states.append(exp.last_state)
-
+        # states_t 经过  actions_t 后， 到达 last_states_t
         last_states_t = torch.tensor(last_states, dtype=torch.float32).to(self.device)
         states_t = torch.tensor(states, dtype=torch.float32).to(self.device)
         actions_t = torch.tensor(actions, dtype=torch.float).to(self.device)
-
+        # critic 网络，# 返回critic 的值
+        # values = self.net(states)[1].squeeze()
+        # 表示状态价值函数 critic 即 v(s_{t},w) https://blog.csdn.net/weixin_41960890/article/details/121947760
+        # values_last 即 \gamma*v(s_{t+1},w
         values_last = self._value_state(last_states_t) * self.gamma ** self.n_steps
         values_last[dones] = 0  # the value of terminal states is zero
 
         # Normalize the rewards
+        # values 是states_t 经过  actions_t 后 得到的奖励,即 r_t
         values_target_t = torch.tensor(values, dtype=torch.float32).to(self.device)
         std, mean = torch.std_mean(values_target_t)
+        # values_target_t 归一化
         values_target_t -= mean
         values_target_t /= std + 1e-6
 
         values_target_t += values_last
-
+        # values_target_t 表示TD target
         return states_t, actions_t, values_target_t
 
 
@@ -408,6 +413,7 @@ class DiscreteActorCritic(Agent):
 
         values = values.squeeze()
         # 定义损失函数
+        # 即TD Error  values为 v(s_{t},w) values_target 为y_{t}
         loss_value = F.mse_loss(values_target, values)
 
         self.value_loss = loss_value.item()

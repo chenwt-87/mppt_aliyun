@@ -111,10 +111,11 @@ class ExperienceSorceDiscounted(ExperienceSorce):
         reward = 0.0
         self.env.counter_step += 1
         for step_idx in range(self.max_steps):
-            # for act in range(1):
+            print(step_idx)
             exp = self.play_step()
             # print('依据网络计,', exp, step_idx)
             reward += exp.reward
+            # max_steps = 1,step_idx=0, self.gamma 无效了，也即，只管下一个状态的reward
             discounted_reward += exp.reward * self.gamma ** (step_idx)
             history.append(exp)
 

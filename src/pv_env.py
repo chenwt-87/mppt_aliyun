@@ -219,14 +219,24 @@ class PVEnv(PVEnvBase):
 
     def render(self, vars: List[str], source_tag) -> None:
         for var in vars:
-            fig = plt.figure(figsize=[8, 4])
-            if var in ["dp", "dv", 'v_pv', 'dp_act']:
-                plt.hist(getattr(self.history, var), label=var)
-            else:
+            if var == 'v_pv':
+                plt.figure(figsize=[8, 4])
                 plt.plot(getattr(self.history, var), label=var)
-            plt.legend()
-            # plt.show()
-            plt.savefig('img/{}--{}.jpg'.format(var,source_tag))
+                plt.savefig('img/{}--{}--line.jpg'.format(var, source_tag))
+                plt.figure(figsize=[8, 4])
+                plt.hist(getattr(self.history, var), label=var)
+                plt.savefig('img/{}--{}--hist.jpg'.format(var, source_tag))
+            elif var in ["dp", "dv", 'dp_act']:
+                plt.figure(figsize=[8, 4])
+                plt.hist(getattr(self.history, var), label=var)
+                plt.legend()
+
+                plt.savefig('img/{}--{}--hist.jpg'.format(var, source_tag))
+            else:
+                plt.figure(figsize=[8, 4])
+                plt.plot(getattr(self.history, var), label=var)
+                plt.legend()
+                plt.savefig('img/{}--{}--line.jpg'.format(var, source_tag))
 
     # def get_ture_mpp_from_his(self, voltage, current):
     #     v, i =
@@ -266,7 +276,7 @@ class PVEnv(PVEnvBase):
     def _add_history(self, p, v, v_pv, i, dp_act) -> None:
         self.history.p.append(p)
         self.history.v.append(v)
-        self.history.v_pv.append(v_pv/self.pvarray.voc)
+        self.history.v_pv.append(v_pv)
         self.history.dp_act.append(dp_act)
         self.history.i.append(i)
         # 无法获取气温和辐照，历史数据中不再存储之。
@@ -334,7 +344,7 @@ class PVEnv(PVEnvBase):
         # 组件 实际的电压v_pv
         dp_act = p - p_v_org * p_i_org
         if set_flag:
-            self._add_history(p=p, v=v, v_pv=v - p_v_max, i=i, dp_act=dp_act)
+            self._add_history(p=p, v=v, v_pv=(v - p_v_max)/self.pvarray.voc, i=i, dp_act=dp_act)
 
         # getattr(handler.request, 'GET') is the same as handler.request.GET
         # print('test  g,t,v',   np.array([getattr(self.history, state)[-1] for state in self.states]))
