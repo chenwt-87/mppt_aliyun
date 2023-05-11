@@ -309,6 +309,7 @@ class Agent(AgentABC):
         #   self.exp_train_source: 函数中有网络定义, 会进入到play_step()
         for exp in next(self.exp_train_source):
             # print('test_exp', exp)
+            # reward 仅仅是动作价值，这里不考虑状态价值
             self.ep_reward += exp.reward
             self.counter_steps_per_ep += exp.steps
 
@@ -324,7 +325,7 @@ class Agent(AgentABC):
                 self.steps_per_ep = self.counter_steps_per_ep
 
                 self.hist_total_rew.append(self.ep_reward)
-                self.mean_reward = np.mean(self.hist_total_rew[-100:])
+                self.mean_reward = np.mean(self.hist_total_rew)
                 self.hist_mean_rew.append(self.mean_reward)
                 self.hist_steps.append(self.counter_step)
                 self.hist_total_loss.append(self.total_loss)
@@ -344,7 +345,7 @@ class Agent(AgentABC):
         # critic 网络，# 返回critic 的值
         # values = self.net(states)[1].squeeze()
         # 表示状态价值函数 critic 即 v(s_{t},w) https://blog.csdn.net/weixin_41960890/article/details/121947760
-        # values_last 即 \gamma*v(s_{t+1},w
+        # values_last 即 \gamma*v(s_{t+1},w)
         values_last = self._value_state(last_states_t) * self.gamma ** self.n_steps
         values_last[dones] = 0  # the value of terminal states is zero
 

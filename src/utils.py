@@ -20,10 +20,12 @@ def read_his_data_csv(path: str, source_tag: bool) -> pd.DataFrame:
     "Read a csv file and returns a DataFrame object"
     logger.info(f"Reading {path} . . .")
     df = pd.read_csv(path, index_col=0)
-    # df = df[df['label'].isin([18, 19, 167])]
+    # df = df[df['label'].isin([22])]
     # 打乱df 顺序
     if source_tag:
-        df = df.sample(frac=1).reset_index(drop=True)
+        print('suiji')
+        df = df[df['label'].isin([20])]
+        # df = df.sample(frac=1).reset_index(drop=True)
     return df
 
 

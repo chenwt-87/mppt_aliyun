@@ -21,13 +21,13 @@ PV_PARAMS_PATH = os.path.join("parameters", "614_pvarray.json")
 CHECKPOINT_PATH = os.path.join("models", MODULE_NAME)
 PVARRAY_CKP_PATH = os.path.join("data", "051_pvarray_iv.json")
 # 这个历史数据集里面，包含很多个辐照条件下的MPP，但是一个辐照下面的非MPP点太少，导致训练样本不够。
-HiS_DATA_PATH_TRAIN = os.path.join("data", "600W_train_data_train.csv")
+HiS_DATA_PATH_TRAIN = os.path.join("data", "600W_train_data.csv")
 HiS_DATA_PATH_TEST = os.path.join("data", "600W_train_data_test.csv")
 LEARNING_RATE = 0.0001
 ENTROPY_BETA = 0.002
 GAMMA = 0.95
 N_STEPS = 1
-BATCH_SIZE = 20
+BATCH_SIZE = 2
 
 if __name__ == "__main__":
     env = PVEnvDiscrete.from_file(
@@ -74,15 +74,14 @@ if __name__ == "__main__":
 
     # 训练模型
     # env.pv_gateway_history.shape[0]
-    # agent.learn(steps=env.pv_gateway_history.shape[0], verbose_every=10, save_every=100)
-    agent.learn(steps=2000, verbose_every=100, save_every=100)
+    agent.learn(steps=env.pv_gateway_history.shape[0], verbose_every=10, save_every=100)
+    # agent.learn(steps=12000, verbose_every=100, save_every=100)
 
-    agent.exp_test_source.play_episode()
-    test_env.render_vs_true(po=True, source_tag='test')
-    test_env.render(["v_pv", 'dp_act'], 'test')
+    # agent.exp_test_source.play_episode()
+    # test_env.render_vs_true(po=True, source_tag='test')
+    # test_env.render(["v_pv", 'dp_act'], 'test')
 
-
-    # agent.exp_train_source.play_episode()
-    # env.render_vs_true(po=True, source_tag='train')
-    # env.render(["dv"], 'train')
-    # env.render(['dp_act'], 'train')
+    agent.exp_train_source.play_episode()
+    env.render_vs_true(po=True, source_tag='train')
+    env.render(["dv"], 'train')
+    env.render(['dp_act'], 'train')

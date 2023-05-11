@@ -115,7 +115,8 @@ class PVEnv(PVEnvBase):
         dv = pv_v_curve_mpp - v
         #   self._store_step 中获取当前温度和光照， 并通过查历史数据 或者 matlab仿真，得到电流，功率，
         #   返回【v_norm,i_norm,dv】
-        obs0 = np.array([v/self.pvarray.voc, i/self.pvarray.isc, dv/self.pvarray.voc])
+        # obs0 = np.array([v/self.pvarray.voc, i/self.pvarray.isc, dv/self.pvarray.voc])
+        obs0 = np.array([v / self.pvarray.voc, i / self.pvarray.isc])
         # obs0 = np.array([v, i, dv])
         # env_train 和 env_test 初始化的时候，会生成两个obs0
         # print('obs   set', obs0)
@@ -151,13 +152,14 @@ class PVEnv(PVEnvBase):
         # 随机取了历史数据中一个点
         # idx = random.randint(0, self.pv_gateway_history.shape[0])
         idx = 0
-        return self.set_obs(idx)
+        obs2, _ = self.set_obs(idx)
+        return obs2
 
     #  experience.py 37 行， 调用该函数   new_obs, reward, done, _ = self.env.step(action)
-    def step(self, action: float, pv_curve_idx) -> StepResult:
+    def step(self, action: float) -> StepResult:
         if self.done:
             raise ValueError("The episode is done")
-
+        pv_curve_idx = 20
         self.step_idx += 1
         print('self.counter_step', self.counter_step, 'self.step_idx', self.step_idx)
         tm_idx = self.pv_gateway_history.index[max(self.step_idx - 1, 0)]
@@ -204,6 +206,8 @@ class PVEnv(PVEnvBase):
         若 dp < 0 则 reward = 2*dp
         """
         reward = self.reward_fn(self.history)
+        if obs[1] == 0:
+            print('--------')
         print('test_obs', obs, 'reward', reward)
         # if self.history.p[-1] < 0 or self.history.v[-1] < 1:
         #     self.done = True
@@ -259,6 +263,15 @@ class PVEnv(PVEnvBase):
         plt.legend()
         plt.savefig('img/效果P--{}.jpg'.format(source_tag))
         # plt.plot(v_real, label="Vmpp")
+
+        plt.figure(figsize=[10, 6])
+        plt.plot(self.history.v, self.history.p, '--', markersize=1, label="P V RL ")
+        plt.grid()
+        plt.xlim(0, 70)
+        # plt.ylim(0, 0)
+        plt.legend()
+        plt.savefig('img/效果P-V--{}.jpg'.format(source_tag))
+
         plt.figure(figsize=[20, 6])
         plt.plot(self.history.v, 'o', markersize=1, label="V RL")
         if po:

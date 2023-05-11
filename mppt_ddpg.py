@@ -2,6 +2,7 @@ import gym
 import stable_baselines3 as sb3
 from src.pv_env import PVEnv, PVEnvDiscrete
 from src.reward import RewardDeltaPower
+from src.reward import RewardDeltaPowerVoltage
 import os
 from tqdm import tqdm
 
@@ -25,18 +26,29 @@ if __name__ == '__main__':
         PV_PARAMS_PATH,  # 光伏组件参数
         HiS_DATA_PATH,  # 光伏组件历史数据
         pvarray_ckp_path=PVARRAY_CKP_PATH,  # 训练过程数据存储
-        states=["v_norm", "i_norm", 'v_pv'],
+        states=["v_norm", "i_norm"],
+        mode='Train',
         # states=["v", "i", 'v_pv'],# 训练输入，可以有多种组合
-        # reward_fn=RewardDeltaPowerVoltage(2, 0.9, 1),  # 奖励函数
-        reward_fn=RewardDeltaPower(4, 2),
+        reward_fn=RewardDeltaPowerVoltage(2, 0.9, 1),  # 奖励函数
+        # reward_fn=RewardDeltaPower(4, 2),
         actions=[-10, -5, -3, -2, -1, -0.1, 0, 0.1, 1, 2, 3, 5, 10],  # 策略函数
     )
 
     # "MlpPolicy"定义了DDPG的策略网络是一个MLP网络
     # agent = sb3.PPO("MlpPolicy", env, verbose=1, tensorboard_log='./log/')
-    agent = sb3.A2C("MlpPolicy", env, verbose=1)
-    agent.learn(total_timesteps=1000, log_interval=1, tb_log_name='sb3_mppt_a2c.log', eval_env=env)
+    agent = sb3.A2C("MlpPolicy",
+                    env,
+                    verbose=100,
+                    n_steps=1,
+                    learning_rate=5e-3,
+                    # normalize_advantage=True,
+                    create_eval_env=True,
+                    tensorboard_log='./runs/')
+    agent.learn(total_timesteps=100000,
+                log_interval=1,
+                tb_log_name='sb3_mppt_a2c.log', eval_env=env)
     agent.save(AGENT_CKP_PATH)
+    # agent.load(AGENT_CKP_PATH)
     obs = env.reset()
     for i in tqdm(range(env.pv_gateway_history.shape[0])):
         action, _states = agent.predict(obs, deterministic=True)
