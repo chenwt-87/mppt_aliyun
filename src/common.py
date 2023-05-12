@@ -13,6 +13,7 @@ class History:
     p: list = field(default_factory=list)  # 功率
     v: list = field(default_factory=list)  # 电压
     dp_act: list = field(default_factory=list)
+    p_mppt: list = field(default_factory=list)
     v_pv: list = field(default_factory=list)  # 组件电压
     i: list = field(default_factory=list)  # 电流
     dp: list = field(default_factory=list)  # dp = p[t] - p[t-1]

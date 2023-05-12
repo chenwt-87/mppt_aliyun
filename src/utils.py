@@ -23,7 +23,7 @@ def read_his_data_csv(path: str, source_tag: bool) -> pd.DataFrame:
     # df = df[df['label'].isin([22])]
     # 打乱df 顺序
     if source_tag:
-        print('suiji')
+        # print('suiji')
         df = df[df['label'].isin([20])]
         # df = df.sample(frac=1).reset_index(drop=True)
     return df

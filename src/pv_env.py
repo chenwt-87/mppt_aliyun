@@ -116,8 +116,9 @@ class PVEnv(PVEnvBase):
         #   self._store_step 中获取当前温度和光照， 并通过查历史数据 或者 matlab仿真，得到电流，功率，
         #   返回【v_norm,i_norm,dv】
         # obs0 = np.array([v/self.pvarray.voc, i/self.pvarray.isc, dv/self.pvarray.voc])
-        obs0 = np.array([v / self.pvarray.voc, i / self.pvarray.isc])
-        # obs0 = np.array([v, i, dv])
+        # obs0 = np.array([v / self.pvarray.voc, i / self.pvarray.isc])
+        obs0 = np.array([v, i])
+        # obs0 = [v, i]
         # env_train 和 env_test 初始化的时候，会生成两个obs0
         # print('obs   set', obs0)
         # self.pvarray.READ_SENSOR_TIME -= 1
@@ -129,6 +130,7 @@ class PVEnv(PVEnvBase):
         self.history.v.append(0.0)
         self.history.v_pv.append(0.0)
         self.history.dp_act.append(0.0)
+        self.history.p_mppt.append(0.0)
         self.history.i.append(0.0)
         # 无法获取气温和辐照，历史数据中不再存储之。
         # self.history.g.append(g)
@@ -159,13 +161,13 @@ class PVEnv(PVEnvBase):
     def step(self, action: float) -> StepResult:
         if self.done:
             raise ValueError("The episode is done")
-        pv_curve_idx = 20
+
         self.step_idx += 1
         print('self.counter_step', self.counter_step, 'self.step_idx', self.step_idx)
         tm_idx = self.pv_gateway_history.index[max(self.step_idx - 1, 0)]
         pv_v = self.pv_gateway_history.at[tm_idx, 'voltage'] / 1000
         pv_i = self.pv_gateway_history.at[tm_idx, 'current'] / 1000
-
+        pv_curve_idx = self.pv_gateway_history.at[tm_idx, 'label']
         idx_max = self.pv_gateway_history[self.pv_gateway_history['label'] == pv_curve_idx]['power'].idxmax()
 
         pv_v_curve_now_mpp = self.pv_gateway_history.at[idx_max, 'voltage'] / 1000
@@ -258,14 +260,18 @@ class PVEnv(PVEnvBase):
         # plt.plot(p_real, label="P Max")
         plt.figure(figsize=[20, 6])
         plt.plot(self.history.p, 'o', markersize=1, label="P RL")
+        plt.plot(np.array(self.history.p) - np.array(self.history.dp_act), 'o', markersize=1, label="P origin")
         if po:
-            plt.plot(p_po, label="P P&O")
+            plt.plot(p_po, label="P mpp")
         plt.legend()
         plt.savefig('img/效果P--{}.jpg'.format(source_tag))
         # plt.plot(v_real, label="Vmpp")
 
         plt.figure(figsize=[10, 6])
-        plt.plot(self.history.v, self.history.p, '--', markersize=1, label="P V RL ")
+        # plt.plot(self.history.v, self.history.p, 'o', markersize=1, label="P V RL ")
+        plt.plot(self.history.v_pv, self.history.p, 'o', markersize=2, label="P V ----RL")
+        plt.plot(self.history.v_pv, np.array(self.history.p) - np.array(self.history.dp_act), 'o', markersize=2,
+                 label="P V origin")
         plt.grid()
         plt.xlim(0, 70)
         # plt.ylim(0, 0)
@@ -274,8 +280,9 @@ class PVEnv(PVEnvBase):
 
         plt.figure(figsize=[20, 6])
         plt.plot(self.history.v, 'o', markersize=1, label="V RL")
+        plt.plot(self.history.v_pv, 'o', markersize=1, label="V origin")
         if po:
-            plt.plot(v_po, label="V P&O")
+            plt.plot(v_po, label="V mpp")
         plt.legend()
         # plt.show()
         plt.savefig('img/效果V--{}.jpg'.format(source_tag))
@@ -286,11 +293,12 @@ class PVEnv(PVEnvBase):
         logger.info(f"RL V_ MAE={PVArray.mppt_mae(v_po, self.history.v)}")
         logger.info(f"RL V_ MAPE={PVArray.mppt_mape(v_po, self.history.v)}")
 
-    def _add_history(self, p, v, v_pv, i, dp_act) -> None:
+    def _add_history(self, p, v, v_pv, i, dp_act, p_mppt) -> None:
         self.history.p.append(p)
         self.history.v.append(v)
         self.history.v_pv.append(v_pv)
         self.history.dp_act.append(dp_act)
+        self.history.p_mppt.append(p_mppt)
         self.history.i.append(i)
         # 无法获取气温和辐照，历史数据中不再存储之。
         # self.history.g.append(g)
@@ -334,16 +342,16 @@ class PVEnv(PVEnvBase):
 
     def _get_observation_space(self) -> gym.Space:
         return gym.spaces.Box(
-            low=np.array([-np.inf] * len(self.states)),
-            high=np.array([-np.inf] * len(self.states)),
+            low=np.array([-1] * len(self.states)),
+            high=np.array([1] * len(self.states)),
             shape=(len(self.states),),
             dtype=np.float32,
         )
 
     def _get_action_space(self) -> gym.Space:
         return gym.spaces.Box(
-            low=-round(self.pvarray.voc * 0.1, 0),
-            high=round(self.pvarray.voc * 0.1, 0),
+            low=-round(1, 0),
+            high=round(1, 0),
             shape=(1,),
             dtype=np.float32,
         )
@@ -356,8 +364,9 @@ class PVEnv(PVEnvBase):
         p, _, self.v_pv, self.i = self.pvarray.simulate(v, i, p_v_max, p_i_max, p_v_org, p_i_org, idx, set_flag)
         # 组件 实际的电压v_pv
         dp_act = p - p_v_org * p_i_org
+        p_mppt = p_i_max * p_v_max
         if set_flag:
-            self._add_history(p=p, v=v, v_pv=(v - p_v_max)/self.pvarray.voc, i=i, dp_act=dp_act)
+            self._add_history(p=p, v=v, v_pv=p_v_org, i=i, dp_act=dp_act, p_mppt=p_mppt)
 
         # getattr(handler.request, 'GET') is the same as handler.request.GET
         # print('test  g,t,v',   np.array([getattr(self.history, state)[-1] for state in self.states]))
