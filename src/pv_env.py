@@ -130,6 +130,7 @@ class PVEnv(PVEnvBase):
         self.history.v.append(0.0)
         self.history.v_pv.append(0.0)
         self.history.dp_act.append(0.0)
+        self.history.reward.append(0.0)
         self.history.p_mppt.append(0.0)
         self.history.i.append(0.0)
         # 无法获取气温和辐照，历史数据中不再存储之。
@@ -293,12 +294,13 @@ class PVEnv(PVEnvBase):
         logger.info(f"RL V_ MAE={PVArray.mppt_mae(v_po, self.history.v)}")
         logger.info(f"RL V_ MAPE={PVArray.mppt_mape(v_po, self.history.v)}")
 
-    def _add_history(self, p, v, v_pv, i, dp_act, p_mppt) -> None:
+    def _add_history(self, p, v, v_pv, i, dp_act, p_mppt, rwd) -> None:
         self.history.p.append(p)
         self.history.v.append(v)
         self.history.v_pv.append(v_pv)
         self.history.dp_act.append(dp_act)
         self.history.p_mppt.append(p_mppt)
+        self.history.reward.append(rwd)
         self.history.i.append(i)
         # 无法获取气温和辐照，历史数据中不再存储之。
         # self.history.g.append(g)
@@ -366,7 +368,8 @@ class PVEnv(PVEnvBase):
         dp_act = p - p_v_org * p_i_org
         p_mppt = p_i_max * p_v_max
         if set_flag:
-            self._add_history(p=p, v=v, v_pv=p_v_org, i=i, dp_act=dp_act, p_mppt=p_mppt)
+            reward = calc_reward(dp_act, p_mppt, p)
+            self._add_history(p=p, v=v, v_pv=p_v_org, i=i, dp_act=dp_act, p_mppt=p_mppt, rwd=reward)
 
         # getattr(handler.request, 'GET') is the same as handler.request.GET
         # print('test  g,t,v',   np.array([getattr(self.history, state)[-1] for state in self.states]))
