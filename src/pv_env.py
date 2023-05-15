@@ -116,8 +116,8 @@ class PVEnv(PVEnvBase):
         #   self._store_step 中获取当前温度和光照， 并通过查历史数据 或者 matlab仿真，得到电流，功率，
         #   返回【v_norm,i_norm,dv】
         # obs0 = np.array([v/self.pvarray.voc, i/self.pvarray.isc, dv/self.pvarray.voc])
-        # obs0 = np.array([v / self.pvarray.voc, i / self.pvarray.isc])
-        obs0 = np.array([v, i])
+        obs0 = np.array([v / self.pvarray.voc, i / self.pvarray.isc])
+        # obs0 = np.array([v, i])
         # obs0 = [v, i]
         # env_train 和 env_test 初始化的时候，会生成两个obs0
         # print('obs   set', obs0)
@@ -184,7 +184,7 @@ class PVEnv(PVEnvBase):
         # 依据 action 选择电压的增量，
         # delta_v = self.actions[action]
         # actions=[-10, -5, -3, -2, -1, -0.1, 0, 0.1, 1, 2, 3, 5, 10]
-        delta_v = self._get_delta_v(action)
+        delta_v = self._get_delta_v(action) * self.pvarray.voc
         # clip 函数， 将v+delta_v 限制在 0 和 Voc 之间
         # 22 为欠压门槛
 
