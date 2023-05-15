@@ -1,20 +1,25 @@
 import gym
 import stable_baselines3 as sb3
+
+from stable_baselines3.common.callbacks import EvalCallback, StopTrainingOnRewardThreshold
+
 # from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.env_checker import check_env
 from src.pv_env import PVEnv, PVEnvDiscrete
 from src.reward import RewardDeltaPower
+from src.func import *
 from src.reward import RewardDeltaPowerVoltage
 import os
+import torch as th
+from typing import Callable
 import numpy as np
-from src.func import *
 from tqdm import tqdm
 
 
 WEATHER_TRAIN_PATH = os.path.join("data", "weather_sim.csv")
 WEATHER_TEST_PATH = os.path.join("data", "weather_real.csv")
 PVARRAY_CKP_PATH = os.path.join("data", "01_pvarray_iv.json")
-AGENT_CKP_PATH = os.path.join("models", "02_mppt_ppo.tar")
+AGENT_CKP_PATH = os.path.join("models", "02_mppt_a2c.tar")
 LEARNING_RATE = 0.001
 ENTROPY_BETA = 0.001
 GAMMA = 0.9
@@ -63,13 +68,13 @@ if __name__ == '__main__':
                                  eval_freq=100,  # 每10000次运行一次eval_callback
                                  best_model_save_path=save_path,  # 在eval_callback上运行最好的模型将会保存于此
                                  verbose=1)
-    if 0:
+    if 1:
         agent = sb3.A2C("MlpPolicy",
                         env,
                         verbose=1,
                         n_steps=128,
                         # learning_rate=5e-4,
-                        learning_rate=linear_schedule(0.001),
+                        # learning_rate=linear_schedule(0.001),
                         gamma=0.05,
                         # use_sde=True,
                         # batch_size=16,
