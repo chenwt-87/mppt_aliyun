@@ -17,3 +17,17 @@ def inter1pd_iv_curve(v_near, data):
     y = np.maximum(y_new, 0)
     y = np.minimum(y, ydata.max())
     return y.mean()/1e3
+
+
+def calc_reward(dp, mpp, p):
+    abs_diff_p = abs(p - mpp)
+    r = 0
+    if abs_diff_p < mpp / 30:
+        r = p * p / (mpp * mpp) + p / mpp
+    else:
+        if dp < -mpp / 100:
+            r = dp / mpp
+        else:
+            r = 0.5
+    # r = 1 if r >= 0 else -100
+    return r

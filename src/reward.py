@@ -1,6 +1,7 @@
 import numpy as np
 
 from src.common import History
+from src.func import *
 
 
 class Reward:
@@ -21,12 +22,12 @@ class DiscreteRewardDeltaPower(Reward):
     """
 
     def __init__(
-        self,
-        a: float = 1.0,
-        b: float = 0.0,
-        c: float = 1.0,
-        neg_treshold: float = -0.1,
-        pos_treshold: float = 0.1,
+            self,
+            a: float = 1.0,
+            b: float = 0.0,
+            c: float = 1.0,
+            neg_treshold: float = -0.1,
+            pos_treshold: float = 0.1,
     ):
         self.a = abs(a)
         self.b = b
@@ -64,14 +65,15 @@ class RewardDeltaPower:
         p = history.p[-1]
         dp = history.dp_act[-1]
         mpp = history.p_mppt[-1]
-        abs_diff_p = abs(p-mpp)
-        if abs_diff_p < mpp/30:
-            return p*(p+1)/(mpp*mpp)
-        else:
-            if dp < mpp/100:
-                return dp/mpp
-            else:
-                return 0
+        abs_diff_p = abs(p - mpp)
+        return calc_reward(dp, mpp, p)
+        # if abs_diff_p < mpp / 30:
+        #     return p * (p + 1) / (mpp * mpp)
+        # else:
+        #     if dp < mpp / 100:
+        #         return dp / mpp
+        #     else:
+        #         return 0
         # if dp < -10:
         #     return p/600
         # else:
@@ -129,7 +131,7 @@ class RewardDeltaPowerVoltage:
         # print('dpppppp', dp)
         # dp = 0一
         p = history.p[-1]
-        diff_v = history.v_pv[-1]*56
+        diff_v = history.v_pv[-1] * 56
         if dp < 0:
             return 1000 + self.a * dp - 100 * self.c * abs(diff_v)
         else:
