@@ -64,14 +64,14 @@ if __name__ == '__main__':
         # states=["v", "i", 'v_pv'],# 训练输入，可以有多种组合
         # reward_fn=RewardDeltaPowerVoltage(2, 0.1, 1),  # 奖励函数
         reward_fn=RewardDeltaPower(4, 2),
-        actions=my_actions # 策略函数
+        actions=my_actions   # 策略函数
     )
     # check_env(env)
     # env_name = "CartPole-v1"
     # env = gym.make(env_name)  # 导入环境
     # "MlpPolicy"定义了DDPG的策略网络是一个MLP网络
     # agent = sb3.PPO("MlpPolicy", env, verbose=1, tensorboard_log='./log/')
-    net_arch = [128, dict(pi=[128, 64, 128, 3], vf=[128, 64, 3])]  # 定义一个新的神经网络架构
+    net_arch = [128, dict(pi=[128, 64, 128, 12], vf=[128, 64, 12])]  # 定义一个新的神经网络架构
     stop_callback = StopTrainingOnRewardThreshold(reward_threshold=32, verbose=1)  # 设置奖励阈值为200，即reward达到200后停止训练
     save_path = os.path.join('models')
     eval_callback = EvalCallback(env,
@@ -83,7 +83,7 @@ if __name__ == '__main__':
         agent = sb3.A2C("MlpPolicy",
                         env,
                         verbose=1,
-                        n_steps=2,
+                        n_steps=1,
                         learning_rate=0.0004,
                         # learning_rate=linear_schedule(0.0004),
                         gamma=0.01,
@@ -115,14 +115,14 @@ if __name__ == '__main__':
         obs = env.reset()
         for i in tqdm(range(env.pv_gateway_history.shape[0])):
             # for i in tqdm(range(1, 41)):
-            obs, _ = env.set_obs(i - 1)
+            obs, _ = env.set_obs(i)
             # print('obs', obs)
             action, _states = agent.predict(obs, deterministic=True)
-            ll = env.pv_gateway_history.at[env.pv_gateway_history.index[max(i-1, 0)], 'label']
+            ll = env.pv_gateway_history.at[env.pv_gateway_history.index[max(i, 0)], 'label']
             idx_max = env.pv_gateway_history[env.pv_gateway_history['label'] == ll]['power'].idxmax()
             p_mpp = env.pv_gateway_history.at[idx_max, 'power']
-            p = env.pv_gateway_history.at[env.pv_gateway_history.index[max(i-1, 0)], 'power']
-            v = env.pv_gateway_history.at[env.pv_gateway_history.index[max(i-1, 0)], 'voltage']
+            p = env.pv_gateway_history.at[env.pv_gateway_history.index[max(i, 0)], 'power']
+            v = env.pv_gateway_history.at[env.pv_gateway_history.index[max(i, 0)], 'voltage']
             v_new = np.array(env.actions) * 1e3 * env.pvarray.voc + v
             df_tmp = env.pv_gateway_history[env.pv_gateway_history['label'] == ll]
             p_new = [inter1pd_iv_curve(x, df_tmp) * x / 1e3 for x in v_new]

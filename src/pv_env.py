@@ -166,7 +166,7 @@ class PVEnv(PVEnvBase):
 
 
         print('self.counter_step', self.counter_step, 'self.step_idx', self.step_idx)
-        tm_idx = self.pv_gateway_history.index[max(self.step_idx - 1, 0)]
+        tm_idx = self.pv_gateway_history.index[max(self.step_idx, 0)]
         pv_v = self.pv_gateway_history.at[tm_idx, 'voltage'] / 1000
         pv_i = self.pv_gateway_history.at[tm_idx, 'current'] / 1000
         pv_curve_idx = self.pv_gateway_history.at[tm_idx, 'label']
@@ -197,11 +197,11 @@ class PVEnv(PVEnvBase):
             i = 0
         print(
             '\n ======= ,原始数据-- {}, v--{}, i-{},delta_v={}, action={}, new_v = {}, 拟合 i ={} pv_mmp_v:{} pv_mmp_i: {}'.format(
-                max(self.step_idx - 1, 0), pv_v, pv_i, delta_v, action, v, i, pv_v_curve_now_mpp, pv_i_curve_now_mpp))
+                self.step_idx, pv_v, pv_i, delta_v, action, v, i, pv_v_curve_now_mpp, pv_i_curve_now_mpp))
         # 依据 v， 通过历史数据或者matlab仿真，得到 obs
         # self.history() 赋值
         obs_for_value_calc = \
-            self._store_step(v, i, pv_v_curve_now_mpp, pv_i_curve_now_mpp, pv_v, pv_i, self.step_idx - 1, True)
+            self._store_step(v, i, pv_v_curve_now_mpp, pv_i_curve_now_mpp, pv_v, pv_i, self.step_idx, True)
         self.pvarray.curve_num = self.pv_gateway_history.at[tm_idx, 'label']
         #  obs ['v_norm', 'i_norm', 'dv']
         """
