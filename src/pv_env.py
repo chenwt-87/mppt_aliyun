@@ -81,6 +81,7 @@ class PVEnv(PVEnvBase):
             v0: Optional[float] = None,
     ) -> None:
 
+        self.step_idx = 0
         self.pvarray = pvarray
         self.states = states
         self.pv_gateway_history = pv_history_data
@@ -163,7 +164,7 @@ class PVEnv(PVEnvBase):
         if self.done:
             raise ValueError("The episode is done")
 
-        self.step_idx += 1
+
         print('self.counter_step', self.counter_step, 'self.step_idx', self.step_idx)
         tm_idx = self.pv_gateway_history.index[max(self.step_idx - 1, 0)]
         pv_v = self.pv_gateway_history.at[tm_idx, 'voltage'] / 1000
@@ -199,7 +200,7 @@ class PVEnv(PVEnvBase):
                 max(self.step_idx - 1, 0), pv_v, pv_i, delta_v, action, v, i, pv_v_curve_now_mpp, pv_i_curve_now_mpp))
         # 依据 v， 通过历史数据或者matlab仿真，得到 obs
         # self.history() 赋值
-        obs = \
+        obs_for_value_calc = \
             self._store_step(v, i, pv_v_curve_now_mpp, pv_i_curve_now_mpp, pv_v, pv_i, self.step_idx - 1, True)
         self.pvarray.curve_num = self.pv_gateway_history.at[tm_idx, 'label']
         #  obs ['v_norm', 'i_norm', 'dv']
@@ -209,19 +210,24 @@ class PVEnv(PVEnvBase):
         若 dp < 0 则 reward = 2*dp
         """
         reward = self.reward_fn(self.history)
-        if obs[1] == 0:
+        if obs_for_value_calc[1] == 0:
             print('--------')
-        print('test_obs', obs, 'reward', reward)
+        self.step_idx += 1
+        print('test_obs', obs_for_value_calc, 'reward', reward)
         # if self.history.p[-1] < 0 or self.history.v[-1] < 1:
         #     self.done = True
         if self.step_idx >= len(self.pv_gateway_history) - 1:
             self.done = True
-
+        obs_for_next_action, _ = self.set_obs(self.step_idx)
+        print('obs for set action ', obs_for_next_action[0]*56, obs_for_next_action[1])
         return StepResult(
-            obs,
+            obs_for_next_action,
             reward,
             self.done,
-            {"step_idx": self.step_idx, "steps": self.counter_step, 'curve_idx': self.pvarray.curve_num},
+            {"step_idx": self.step_idx,
+             "steps": self.counter_step,
+             'curve_idx': self.pvarray.curve_num,
+             'obs_for_value_calc': obs_for_value_calc},
         )
 
     def render(self, vars: List[str], source_tag) -> None:

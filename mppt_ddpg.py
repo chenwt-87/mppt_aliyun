@@ -51,8 +51,8 @@ if __name__ == '__main__':
         # states=["v", "i", 'v_pv'],# 训练输入，可以有多种组合
         # reward_fn=RewardDeltaPowerVoltage(2, 0.1, 1),  # 奖励函数
         reward_fn=RewardDeltaPower(4, 2),
-        # actions=[-15, -10, 0, 8, 25],  # 策略函数
-        actions=my_actions,
+        actions=np.array([-10, 0, 10])/56,  # 策略函数
+        # actions=my_actions,
     )
 
     env_test = PVEnvDiscrete.from_file(
@@ -71,63 +71,64 @@ if __name__ == '__main__':
     # env = gym.make(env_name)  # 导入环境
     # "MlpPolicy"定义了DDPG的策略网络是一个MLP网络
     # agent = sb3.PPO("MlpPolicy", env, verbose=1, tensorboard_log='./log/')
-    net_arch = [256, dict(pi=[256, 256, 128, 128], vf=[256, 128, 128])]  # 定义一个新的神经网络架构
-    stop_callback = StopTrainingOnRewardThreshold(reward_threshold=700, verbose=1)  # 设置奖励阈值为200，即reward达到200后停止训练
+    net_arch = [128, dict(pi=[128, 64, 128, 3], vf=[128, 64, 3])]  # 定义一个新的神经网络架构
+    stop_callback = StopTrainingOnRewardThreshold(reward_threshold=32, verbose=1)  # 设置奖励阈值为200，即reward达到200后停止训练
     save_path = os.path.join('models')
     eval_callback = EvalCallback(env,
                                  callback_on_new_best=stop_callback,  # 每次有新的最好的模型都会运行stop_callback
                                  eval_freq=100,  # 每10000次运行一次eval_callback
                                  best_model_save_path=save_path,  # 在eval_callback上运行最好的模型将会保存于此
                                  verbose=1)
-    if 0:
+    if 1:
         agent = sb3.A2C("MlpPolicy",
                         env,
                         verbose=1,
                         n_steps=2,
-                        # learning_rate=5e-4,
-                        learning_rate=linear_schedule(0.0001),
-                        gamma=0.5,
+                        learning_rate=0.0004,
+                        # learning_rate=linear_schedule(0.0004),
+                        gamma=0.01,
                         # use_sde=True,
                         # batch_size=16,
                         # normalize_advantage=True,
-                        # create_eval_env=True,
+                        create_eval_env=True,
                         tensorboard_log='./log/',
                         policy_kwargs={'net_arch': net_arch,
-                                       'activation_fn': th.nn.Tanh,
-                                       # 'ortho_init': True,
+                                       'activation_fn': th.nn.ReLU,
+                                       'ortho_init': True,
                                        # 'use_sde': True
                                        }
                         # policy_kwargs=a2c_param_dict
 
                         )
-        agent.learn(total_timesteps=10000,
-                    log_interval=1,
+        agent.learn(total_timesteps=120000,
+                    log_interval=50,
                     n_eval_episodes=40,
-                    # eval_env=env,
+                    eval_env=env,
                     tb_log_name='sb3_mppt_a2c.log',
                     # reset_num_timesteps=True,
                     callback=eval_callback
                     )
         agent.save(AGENT_CKP_PATH)
     else:
-        agent = sb3.A2C.load('models/best_model.zip', env)
-        # agent = sb3.A2C.load(AGENT_CKP_PATH)
+        # agent = sb3.A2C.load('models/best_model.zip', env)
+        agent = sb3.A2C.load(AGENT_CKP_PATH)
         obs = env.reset()
         for i in tqdm(range(env.pv_gateway_history.shape[0])):
             # for i in tqdm(range(1, 41)):
             obs, _ = env.set_obs(i - 1)
-            print('obs', obs)
+            # print('obs', obs)
             action, _states = agent.predict(obs, deterministic=True)
-            ll = env.pv_gateway_history.at[env.pv_gateway_history.index[i], 'label']
+            ll = env.pv_gateway_history.at[env.pv_gateway_history.index[max(i-1, 0)], 'label']
             idx_max = env.pv_gateway_history[env.pv_gateway_history['label'] == ll]['power'].idxmax()
             p_mpp = env.pv_gateway_history.at[idx_max, 'power']
-            p = env.pv_gateway_history.at[env.pv_gateway_history.index[i], 'power']
-            v = env.pv_gateway_history.at[env.pv_gateway_history.index[i], 'voltage']
-            v_new = np.array(env.actions) * 1e3 + v
+            p = env.pv_gateway_history.at[env.pv_gateway_history.index[max(i-1, 0)], 'power']
+            v = env.pv_gateway_history.at[env.pv_gateway_history.index[max(i-1, 0)], 'voltage']
+            v_new = np.array(env.actions) * 1e3 * env.pvarray.voc + v
             df_tmp = env.pv_gateway_history[env.pv_gateway_history['label'] == ll]
             p_new = [inter1pd_iv_curve(x, df_tmp) * x / 1e3 for x in v_new]
             p_diff = abs(p_new - p_mpp)
-
+            if i == 33:
+                print(1)
             # action = np.argmin(p_diff)
             # for i in range(len(env.actions)):
 

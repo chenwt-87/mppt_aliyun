@@ -7,7 +7,7 @@ def inter1pd_iv_curve(v_near, data):
     ydata = data.current.values
     if v_near in data.voltage.values:
         print(1)
-        return data[data.voltage == v_near].current.values[0]
+        return data[data.voltage == v_near].current.values[0]/1e3
     if v_near > xdata.max() or v_near < xdata.min():
         print('电压月线图')
         return 0
@@ -29,5 +29,11 @@ def calc_reward(dp, mpp, p):
             r = dp / mpp
         else:
             r = 0.5
-    # r = 1 if r >= 0 else -100
+    if dp < -1:
+        r = -1
+    elif -1 <= dp < 1:
+        r = 0.1
+    else:
+        r = 1
     return r
+    # return round(dp, 0)

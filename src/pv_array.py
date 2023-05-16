@@ -79,7 +79,7 @@ class PVArray:
         key = f"{data_index},{pv_v_o},{pv_i_o},{round(set_v-pv_v_o,2)}"
         # if key == "1,25.02,3.17,0.0" or '2,25.02,3.17,-1.0':
         #     print('ooooo', key)
-        if self.hist[key]:
+        if 0 and self.hist[key]:
             # 从历史数据中读取
             result = PVSimResult(*self.hist[key])
         else:

@@ -67,8 +67,8 @@ class RewardDeltaPower:
         mpp = history.p_mppt[-1]
         abs_diff_p = abs(p - mpp)
         v_pv = history.v_pv[-1] - history.v[-1]
-        return dp
-        # return calc_reward(dp, mpp, p)
+        # return round(dp, 0)
+        return calc_reward(dp, mpp, p)
         # if abs_diff_p < mpp / 30:
         #     return p * (p + 1) / (mpp * mpp)
         # else:
