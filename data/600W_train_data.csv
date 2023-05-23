@@ -1,4 +1,4 @@
-,voltage,current,power,label,,
+,voltage,current,power,label,v_norm,I_norm
 10,24740,3174,78.52476,18,,
 11,25016,3170,79.30072,18,,
 12,25296,3175,80.3148,18,,

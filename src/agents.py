@@ -18,7 +18,7 @@ from src.policies import (
     DiscreteGreedyPolicy,
     GaussianPolicy,
 )
-from src.logger import logger
+from src.logger import *
 
 
 class AgentABC:
@@ -246,7 +246,7 @@ class Agent(AgentABC):
         for metric in metrics:
             plt.plot(self.hist_steps, dic[metric], label=metric)
             # if "loss" in metric and not "entropy" in metric:
-            #     plt.yscale("log")
+            #     plt.yscale("log_files")
             plt.legend()
             plt.show()
 

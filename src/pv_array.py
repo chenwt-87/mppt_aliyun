@@ -1,9 +1,10 @@
 import os
 from collections import namedtuple
-from functools import partial, lru_cache
+from functools import partial
 from typing import Dict, List, Union
-import matplotlib.pyplot as plt
+
 import matplotlib
+import matplotlib.pyplot as plt
 
 matplotlib.use('TkAgg')
 
@@ -12,13 +13,11 @@ import numpy as np
 from scipy.optimize import minimize
 from tqdm import tqdm
 from collections import defaultdict
-from typing import Optional
 
 from src import utils
-from src.logger import logger
 from src.utils import read_weather_csv
-from src.read_serial import read_serial_data
 from src.read_serial import read_serial_data_sim
+import logging
 
 # from mppt_ac import READ_SENSOR_TIME
 
@@ -78,7 +77,7 @@ class PVArray:
         except_i = round(current_in, self.float_precision)
         key = f"{data_index},{pv_v_o},{pv_i_o},{round(set_v-pv_v_o,2)}"
         # if key == "1,25.02,3.17,0.0" or '2,25.02,3.17,-1.0':
-        #     print('ooooo', key)
+        #     logging.info('ooooo', key)
         if 0 and self.hist[key]:
             # 从历史数据中读取
             result = PVSimResult(*self.hist[key])
@@ -86,7 +85,7 @@ class PVArray:
             result = self._read_gateway_his_data(pv_v_m, pv_i_m, pv_v_o, pv_i_o, set_v, except_i)
             # self.READ_SENSOR_TIME += 1
             self.hist[key] = result
-            # print('key===', key)
+            # logging.info('key===', key)
             if flag_write:
                 self._save_history(verbose=False)
         self.READ_SENSOR_TIME += 1
@@ -114,7 +113,7 @@ class PVArray:
         key = f"{v},{g},{t}"
         result = self._read_sensor_po(v)
         self.READ_SENSOR_TIME += 1
-        print('self.READ_SENSOR_TIME', self.READ_SENSOR_TIME)
+        logging.info('self.READ_SENSOR_TIME', self.READ_SENSOR_TIME)
 
         # self.hist[key] = result
         # self._save_history(verbose=False)
@@ -257,7 +256,7 @@ class PVArray:
         # self._eng.eval("load_system(model)", nargout=0)
         # set_parameters(self._eng, self.model_name, {"StopTime": "1e-3"})
         # set_parameters(self._eng, [self.model_name, "PV Array"], self.params)
-        logger.info("Model loaded succesfully.")
+        logging.info("Model loaded succesfully.")
 
     def _init_history(self) -> None:
         if os.path.exists(self.ckp_path):
@@ -295,7 +294,7 @@ class PVArray:
         for i in range(1):
             pv_voltage, buck_voltage, pv_current = read_serial_data_sim(self.READ_SENSOR_TIME)
 
-            print("第{}轮  voltage_set - pv_voltage = {} - {} = {} ".format(self.READ_SENSOR_TIME, voltage_set * 1000,
+            logging.info("第{}轮  voltage_set - pv_voltage = {} - {} = {} ".format(self.READ_SENSOR_TIME, voltage_set * 1000,
                                                                           pv_voltage,
                                                                           abs(voltage_set * 1000 - pv_voltage)))
             list_pv_voltage.append(pv_voltage)
@@ -314,7 +313,7 @@ class PVArray:
         else:
             pv_power = 0
         if pv_power > 0:
-            print('U:{} V , I:{} A, P:{} W'.format(pv_voltage, pv_current, pv_power))
+            logging.info('U:{} V , I:{} A, P:{} W'.format(pv_voltage, pv_current, pv_power))
 
         return PVSimResult(
             round(pv_power, self.float_precision),
@@ -332,7 +331,7 @@ class PVArray:
         for i in range(1):
             pv_voltage, buck_voltage, pv_current = read_serial_data_sim(self.READ_SENSOR_TIME)
 
-            print("第{}轮  voltage_set - pv_voltage = {} - {} = {} ".format(self.READ_SENSOR_TIME, voltage_set * 1000,
+            logging.info("第{}轮  voltage_set - pv_voltage = {} - {} = {} ".format(self.READ_SENSOR_TIME, voltage_set * 1000,
                                                                           pv_voltage,
                                                                           abs(voltage_set * 1000 - pv_voltage)))
             list_pv_voltage.append(pv_voltage)
@@ -351,7 +350,7 @@ class PVArray:
         else:
             pv_power = 0
         if pv_power > 0:
-             print('U:{} V , I:{} A, P:{} W'.format(pv_voltage, pv_current, pv_power))
+             logging.info('U:{} V , I:{} A, P:{} W'.format(pv_voltage, pv_current, pv_power))
 
         return PVSimResult(
             round(pv_power, self.float_precision),
@@ -367,7 +366,7 @@ class PVArray:
         pv_current = pv_current / 1000
 
         pv_power = pv_voltage * pv_current
-        print('U_set:{} V U:{} V , I:{} A, P:{} W'.format(voltage_set, pv_voltage, pv_current, pv_power))
+        logging.info('U_set:{} V U:{} V , I:{} A, P:{} W'.format(voltage_set, pv_voltage, pv_current, pv_power))
 
         return PVSimResult(
             round(pv_power, self.float_precision),
@@ -387,7 +386,7 @@ class PVArray:
         #     pv_power = 0
         pv_power = voltage_set * current_now
         if pv_power > 0:
-            print('new U:{} V , new I:{} A, new P:{} W'.format(voltage_set, current_now, pv_power))
+            logging.info('new U:{} V , new I:{} A, new P:{} W'.format(voltage_set, current_now, pv_power))
 
         return PVSimResult(
             round(pv_power, self.float_precision),
@@ -454,10 +453,10 @@ if __name__ == "__main__":
     plt.plot(real.power, label="Real P")
     plt.legend()
     plt.show()
-    print('done!!')
+    logging.info('done!!')
     fig = plt.figure(figsize=(20, 10))
     plt.plot(po.voltage, label="PO V")
     plt.plot(real.voltage, label="Real V")
     plt.legend()
     plt.show()
-    print('done!!')
+    logging.info('done!!')
