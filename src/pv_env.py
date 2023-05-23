@@ -12,7 +12,7 @@ from src.pv_array import PVArray
 from src.utils import read_his_data_csv
 from src.common import StepResult, History
 from src.func import *
-from src.logger import logger
+import logging
 
 G_MAX = 1200
 T_MAX = 60
@@ -40,7 +40,7 @@ class PVEnvBase(gym.Env):
         raise NotImplementedError
 
     def _get_delta_v(self, action: float) -> float:
-        # print(action)
+        # logging.info(action)
         raise NotImplementedError
 
     @classmethod
@@ -121,7 +121,7 @@ class PVEnv(PVEnvBase):
         # obs0 = np.array([v, i])
         # obs0 = [v, i]
         # env_train 和 env_test 初始化的时候，会生成两个obs0
-        # print('obs   set', obs0)
+        # logging.info('obs   set', obs0)
         # self.pvarray.READ_SENSOR_TIME -= 1
         return obs0, num_pv_curve
 
@@ -163,9 +163,7 @@ class PVEnv(PVEnvBase):
     def step(self, action: float) -> StepResult:
         if self.done:
             raise ValueError("The episode is done")
-
-
-        print('self.counter_step', self.counter_step, 'self.step_idx', self.step_idx)
+        logging.info('self.counter_step {} self.step_idx {} '.format(self.counter_step, self.step_idx))
         tm_idx = self.pv_gateway_history.index[max(self.step_idx, 0)]
         pv_v = self.pv_gateway_history.at[tm_idx, 'voltage'] / 1000
         pv_i = self.pv_gateway_history.at[tm_idx, 'current'] / 1000
@@ -178,9 +176,9 @@ class PVEnv(PVEnvBase):
         idx_min = self.pv_gateway_history[self.pv_gateway_history['label'] == pv_curve_idx]['power'].idxmin()
         pv_v_curve_now_lpp = self.pv_gateway_history.at[idx_min, 'voltage'] / 1000
         pv_i_curve_now_lpp = self.pv_gateway_history.at[idx_min, 'current'] / 1000
-        # print('当前曲线下，MPP idx={} i={}.v={}'.format(idx_max, pv_i_curve_now_mpp, pv_v_curve_now_mpp))
-        # print('当前曲线下，LPP idx={} i={}.v={}'.format(idx_min, pv_i_curve_now_lpp, pv_v_curve_now_lpp))
-        # print('当前曲线下，共采集{}个工作点'.format(
+        # logging.info('当前曲线下，MPP idx={} i={}.v={}'.format(idx_max, pv_i_curve_now_mpp, pv_v_curve_now_mpp))
+        # logging.info('当前曲线下，LPP idx={} i={}.v={}'.format(idx_min, pv_i_curve_now_lpp, pv_v_curve_now_lpp))
+        # logging.info('当前曲线下，共采集{}个工作点'.format(
         #     self.pv_gateway_history[self.pv_gateway_history['label'] == pv_curve_idx].shape[0]))
         # 依据 action 选择电压的增量，
         # delta_v = self.actions[action]
@@ -193,9 +191,9 @@ class PVEnv(PVEnvBase):
 
         i = inter1pd_iv_curve(1000 * v, self.pv_gateway_history[self.pv_gateway_history['label'] == pv_curve_idx])
         if i > self.pvarray.isc:
-            print('拟合的电流：', i)
+            logging.info('拟合的电流：', i)
             i = 0
-        print(
+        logging.info(
             '\n ======= ,原始数据-- {}, v--{}, i-{},delta_v={}, action={}, new_v = {}, 拟合 i ={} pv_mmp_v:{} pv_mmp_i: {}'.format(
                 self.step_idx, pv_v, pv_i, delta_v, action, v, i, pv_v_curve_now_mpp, pv_i_curve_now_mpp))
         # 依据 v， 通过历史数据或者matlab仿真，得到 obs
@@ -211,15 +209,15 @@ class PVEnv(PVEnvBase):
         """
         reward = self.reward_fn(self.history)
         if obs_for_value_calc[1] == 0:
-            print('--------')
+            logging.info('--------')
         self.step_idx += 1
-        print('test_obs', obs_for_value_calc, 'reward', reward)
+        logging.info('test_obs {}  reward {} '.format(obs_for_value_calc, reward))
         # if self.history.p[-1] < 0 or self.history.v[-1] < 1:
         #     self.done = True
         if self.step_idx >= len(self.pv_gateway_history) - 1:
             self.done = True
         obs_for_next_action, _ = self.set_obs(self.step_idx)
-        print('obs for set action ', obs_for_next_action[0]*56, obs_for_next_action[1])
+        logging.info('obs for set action {}  {}'.format(obs_for_next_action[0]*56, obs_for_next_action[1]))
         return StepResult(
             obs_for_next_action,
             reward,
@@ -295,10 +293,10 @@ class PVEnv(PVEnvBase):
         plt.savefig('img/效果V--{}.jpg'.format(source_tag))
 
         # if po:
-        #     logger.info(f"PO Efficiency={PVArray.mppt_eff(p_real, p_po)}")
-        logger.info(f"RL P_  Efficiency={PVArray.mppt_eff(p_po, self.history.p)}")
-        logger.info(f"RL V_ MAE={PVArray.mppt_mae(v_po, self.history.v)}")
-        logger.info(f"RL V_ MAPE={PVArray.mppt_mape(v_po, self.history.v)}")
+        #     logging.info(f"PO Efficiency={PVArray.mppt_eff(p_real, p_po)}")
+        logging.info(f"RL P_  Efficiency={PVArray.mppt_eff(p_po, self.history.p)}")
+        logging.info(f"RL V_ MAE={PVArray.mppt_mae(v_po, self.history.v)}")
+        logging.info(f"RL V_ MAPE={PVArray.mppt_mape(v_po, self.history.v)}")
 
     def _add_history(self, p, v, v_pv, i, dp_act, p_mppt, rwd) -> None:
         self.history.p.append(p)
@@ -343,7 +341,7 @@ class PVEnv(PVEnvBase):
             )
 
     def _get_delta_v(self, action: float) -> float:
-        # print(action)
+        # logging.info(action)
         if isinstance(action, list):
             action = action[0]
         return action
@@ -378,7 +376,7 @@ class PVEnv(PVEnvBase):
             self._add_history(p=p, v=v, v_pv=p_v_org, i=i, dp_act=dp_act, p_mppt=p_mppt, rwd=reward)
 
         # getattr(handler.request, 'GET') is the same as handler.request.GET
-        # print('test  g,t,v',   np.array([getattr(self.history, state)[-1] for state in self.states]))
+        # logging.info('test  g,t,v',   np.array([getattr(self.history, state)[-1] for state in self.states]))
         return np.array([getattr(self.history, state)[-1] for state in self.states])
 
 
@@ -416,7 +414,7 @@ class PVEnvDiscrete(PVEnv):
         )
 
     def _get_delta_v(self, action: int) -> float:
-        # print(action)
+        # logging.info(action)
         return self.actions[action]
 
     def _get_action_space(self) -> gym.Space:
