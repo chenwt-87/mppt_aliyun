@@ -18,7 +18,7 @@ import time
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
-MODULE_NAME = "model_real_6191.tar"
+MODULE_NAME = "model_real_631.tar"
 PV_PARAMS_PATH = os.path.join("parameters", "614_pvarray.json")
 CHECKPOINT_PATH = os.path.join("models", MODULE_NAME)
 PVARRAY_CKP_PATH = os.path.join("data", "051_pvarray_iv.json")
