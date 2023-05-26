@@ -191,7 +191,7 @@ class PVEnv(PVEnvBase):
 
         i = inter1pd_iv_curve(1000 * v, self.pv_gateway_history[self.pv_gateway_history['label'] == pv_curve_idx])
         if i > self.pvarray.isc:
-            logging.info('拟合的电流：', i)
+            logging.info('拟合的电流：{}'.format(i))
             i = 0
         logging.info(
             '\n ======= ,原始数据-- {}, v--{}, i-{},delta_v={}, action={}, new_v = {}, 拟合 i ={} pv_mmp_v:{} pv_mmp_i: {}'.format(
@@ -297,6 +297,9 @@ class PVEnv(PVEnvBase):
         logging.info(f"RL P_  Efficiency={PVArray.mppt_eff(p_po, self.history.p)}")
         logging.info(f"RL V_ MAE={PVArray.mppt_mae(v_po, self.history.v)}")
         logging.info(f"RL V_ MAPE={PVArray.mppt_mape(v_po, self.history.v)}")
+        print(f"RL P_  Efficiency={PVArray.mppt_eff(p_po, self.history.p)}")
+        print(f"RL V_ MAE={PVArray.mppt_mae(v_po, self.history.v)}")
+        print(f"RL V_ MAPE={PVArray.mppt_mape(v_po, self.history.v)}")
 
     def _add_history(self, p, v, v_pv, i, dp_act, p_mppt, rwd) -> None:
         self.history.p.append(p)

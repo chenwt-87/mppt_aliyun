@@ -23,14 +23,14 @@ def inter1pd_iv_curve(v_near, data):
 def calc_reward(dp, mpp, p):
     abs_diff_p = abs(p - mpp)
     r = 0
-    if abs_diff_p < mpp / 50:
+    if abs_diff_p < mpp / 100:
         # r = 0.5*(p * p / (mpp * mpp) + p / mpp)
         r = 1
     else:
-        if dp < -mpp / 50:
+        if dp < -mpp / 100:
             # r = dp / mpp
             r = -1
-        elif -mpp / 50 <= dp <= mpp / 50:
+        elif -mpp / 50 <= dp <= mpp / 100:
             r = -0.1
         else:
             r = 0.5 * dp / mpp

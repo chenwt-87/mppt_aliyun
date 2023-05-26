@@ -24,7 +24,7 @@ def read_his_data_csv(path: str, source_tag: bool) -> pd.DataFrame:
     if source_tag:
         logging.info('suiji')
         df = df[df['label'].isin([22, 18, 19, 23, 1, 9])]
-        df = df.sample(frac=1).reset_index(drop=True)
+        # df = df.sample(frac=1).reset_index(drop=True)
     return df
 
 
