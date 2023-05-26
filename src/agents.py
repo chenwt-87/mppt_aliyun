@@ -274,7 +274,7 @@ class Agent(AgentABC):
             },
             path,
         )
-        logger.info(f"Checkpoint saved to {path}")
+        logging.info(f"Checkpoint saved to {path}")
 
     def load(self, path: Optional[str] = None) -> None:
         path = path or self.chk_path
@@ -298,7 +298,7 @@ class Agent(AgentABC):
         self.value_loss = checkpoint["value_loss"]
         self.mean_reward = checkpoint["mean_reward"]
         self.steps_per_ep = checkpoint["steps_per_ep"]
-        logger.info(f"Checkpoint loaded from {path}")
+        logging.info(f"Checkpoint loaded from {path}")
 
     def _prepare_batch(self) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         states = []
@@ -319,7 +319,7 @@ class Agent(AgentABC):
 
             if exp.last_state is None:
                 dones.append(True)
-                last_states.append(exp.state)  # as a placeholder, we'll mask this val
+                last_states.append(exp.obs_for_value)  # as a placeholder, we'll mask this val
 
                 self.counter_ep += 1
                 self.steps_per_ep = self.counter_steps_per_ep
@@ -337,7 +337,7 @@ class Agent(AgentABC):
                 self.counter_steps_per_ep = 0
             else:
                 dones.append(False)
-                last_states.append(exp.last_state)
+                last_states.append(exp.obs_for_value)
         # states_t 经过  actions_t 后， 到达 last_states_t
         last_states_t = torch.tensor(last_states, dtype=torch.float32).to(self.device)
         states_t = torch.tensor(states, dtype=torch.float32).to(self.device)

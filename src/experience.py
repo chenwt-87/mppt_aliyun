@@ -3,11 +3,11 @@ import gym
 from src.policies import BasePolicy
 
 Experience = collections.namedtuple(
-    "Experience", ["state", "action", "reward", "last_state"]
+    "Experience", ["state", "action", "reward", "obs_for_value", "last_state"]
 )
 ExperienceDiscounted = collections.namedtuple(
     "Experience",
-    ["state", "action", "reward", "last_state", "discounted_reward", "steps"],
+    ["state", "action", "reward", "last_state", "obs_for_value", "discounted_reward", "steps"],
 )
 
 
@@ -40,15 +40,15 @@ class ExperienceSorce:
         # except:
         #     print(-1)
         # 基于action 【int】，选择电压增量，计算新的状态和 reward , 调用  pv_env.py  line 97 的 step(函数)
-        new_obs, reward, done, _ = self.env.step(action, curve_num)
+        new_obs, reward, done, infos = self.env.step(action)
         if self.render:
             self.env.render()
         if done:
             self.done = True
-            return Experience(state=obs, action=action, reward=reward, last_state=None)
+            return Experience(state=obs, action=action, reward=reward, obs_for_value=infos['obs_for_value_calc'], last_state=None)
         # new_obs 执行策略后达到的状态
         # obs_是原始状态
-        return Experience(state=obs, action=action, reward=reward, last_state=new_obs)
+        return Experience(state=obs, action=action, reward=reward, obs_for_value=infos['obs_for_value_calc'],last_state=new_obs)
 
     def play_step_pred(self):
         if self.done:
@@ -62,14 +62,14 @@ class ExperienceSorce:
         # 基于obs，计算当前状态，进入到网络结构  转入policies.py line 46 行
         action = self.policy(obs)
         # 基于action 【int】，选择电压增量，计算新的状态和 reward , 调用  pv_env.py  line 97 的 step(函数)
-        new_obs, reward, done, _ = self.env.step(action, curve_num)
+        new_obs, reward, done, infos = self.env.step(action)
         if self.render:
             self.env.render()
         if done:
             self.done = True
-            return Experience(state=new_obs, action=action, reward=reward, last_state=None)
+            return Experience(state=new_obs, action=action, reward=reward, obs_for_value=infos['obs_for_value_calc'], last_state=None)
         # self.obs = new_obs
-        return Experience(state=new_obs, action=action, reward=reward, last_state=new_obs)
+        return Experience(state=new_obs, action=action, reward=reward, obs_for_value=infos['obs_for_value_calc'], last_state=new_obs)
 
     def play_episode(self):
         ep_history = []
@@ -130,6 +130,7 @@ class ExperienceSorceDiscounted(ExperienceSorce):
             action=history[0].action,
             last_state=history[-1].last_state,
             reward=reward,
+            obs_for_value=exp.obs_for_value,
             discounted_reward=discounted_reward,
             steps=step_idx + 1,
         )
@@ -156,6 +157,7 @@ class ExperienceSorceDiscounted(ExperienceSorce):
             action=history[0].action,
             last_state=history[-1].last_state,
             reward=reward,
+            obs_for_value=exp.obs_for_value,
             discounted_reward=discounted_reward,
             steps=step_idx + 1,
         )
