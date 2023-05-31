@@ -170,7 +170,7 @@ class ExperienceSorceDiscounted(ExperienceSorce):
             iter_num += 1
             experience = self.play_n_steps_pred()
             ep_history.append(experience)
-            print('计算次数', iter_num)
+            # print('计算次数', iter_num)
             if experience.last_state is None:
                 return ep_history
 

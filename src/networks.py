@@ -9,21 +9,23 @@ class DiscreteActorCriticNetwork(nn.Module):
         super().__init__()
 
         self.net = nn.Sequential(
-            nn.Linear(input_size, 128),
+            nn.Linear(input_size, 256),
             nn.ReLU(),
         )
         # torch.nn.init.normal_(self.net[0].weight, mean=0, std=1)  #
         # self.actor = nn.Linear(128, n_actions)
         self.actor = nn.Sequential(
-            nn.Linear(128, 256),
+            nn.Linear(256, 512),
             nn.ReLU(),
-            nn.Linear(256, n_actions),
+            nn.Linear(512, n_actions),
             nn.ReLU(),
         )
         # torch.nn.init.normal_(self.actor[0].weight, mean=0, std=1)  #
         # self.critic = nn.Linear(128, 1)
         self.critic = nn.Sequential(
-            nn.Linear(128, 1),
+            nn.Linear(256, 512),
+            nn.ReLU(),
+            nn.Linear(512, 1),
             nn.ReLU(),
         )
         # torch.nn.init.normal_(self.critic[0].weight, mean=0, std=1)  #

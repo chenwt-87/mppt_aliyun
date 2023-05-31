@@ -2,6 +2,7 @@ import os
 
 import torch
 from torch.utils.tensorboard import SummaryWriter
+from typing import Callable
 
 # 建立一个保存数据用的东西，save是输出的文件名
 
@@ -18,18 +19,27 @@ import time
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
-MODULE_NAME = "model_real_631.tar"
+MODULE_NAME = "model_real_614_238_add_lr.tar"
 PV_PARAMS_PATH = os.path.join("parameters", "614_pvarray.json")
 CHECKPOINT_PATH = os.path.join("models", MODULE_NAME)
 PVARRAY_CKP_PATH = os.path.join("data", "051_pvarray_iv.json")
 # 这个历史数据集里面，包含很多个辐照条件下的MPP，但是一个辐照下面的非MPP点太少，导致训练样本不够。
 HiS_DATA_PATH_TRAIN = os.path.join("data", "600W_train_data_test.csv")
 HiS_DATA_PATH_TEST = os.path.join("data", "600W_train_data_test.csv")
-LEARNING_RATE = 0.01
-ENTROPY_BETA = 0.02
-GAMMA = 0.95
+LEARNING_RATE = 0.0003
+ENTROPY_BETA = 0.5
+GAMMA = 0.0001
 N_STEPS = 1
 BATCH_SIZE = 238
+set_log()
+
+
+def linear_schedule(initial_value: float) -> Callable[[float], float]:
+    def func(progress_remaining: float) -> float:
+        return progress_remaining * initial_value
+
+    return func
+
 
 my_actions = np.array([-25, -15, -10, -5, -3, -2, -1, 0, 1, 2, 3, 5, 10, 15, 25]) / 56
 
@@ -79,9 +89,8 @@ if __name__ == "__main__":
 
     # 训练模型
     # env.pv_gateway_history.shape[0]
-    set_log()
-    agent.learn(steps=env.pv_gateway_history.shape[0], verbose_every=10, save_every=100)
-    # agent.learn(steps=12000, verbose_every=100, save_every=100)
+    # agent.learn(steps=env.pv_gateway_history.shape[0]*10, verbose_every=10, save_every=100)
+    agent.learn(steps=5000, verbose_every=5, save_every=100)
 
     # agent.exp_test_source.play_episode()
     # test_env.render_vs_true(po=True, source_tag='test')

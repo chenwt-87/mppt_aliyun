@@ -5,6 +5,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.optim.lr_scheduler import ExponentialLR
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 import os
@@ -19,7 +20,6 @@ from src.policies import (
     GaussianPolicy,
 )
 from src.logger import *
-
 
 class AgentABC:
     "Abstract class of Agent"
@@ -88,6 +88,8 @@ class Agent(AgentABC):
         self.chk_path = chk_path
         if optimizer == "adam":
             self.optimizer = torch.optim.Adam(net.parameters(), lr=lr)
+            # self.scheduler = ExponentialLR(optimizer=self.optimizer, gamma=0.9)
+
         else:
             raise ValueError("Only `adam` is supported")
         self.policy = self._get_train_policy()
@@ -442,7 +444,10 @@ class DiscreteActorCritic(Agent):
         # 反向传播 求道
         loss_total.backward()
         #  求最小
+        lr_history = []
         self.optimizer.step()
+        # lr_history.append(self.param_groups[0]['lr'])
+        # self.scheduler.step()  # 调整学习率
         self.total_loss = loss_total.item()
 
     def _value_state(self, states: torch.Tensor) -> torch.Tensor:

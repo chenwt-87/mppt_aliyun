@@ -12,7 +12,7 @@ from src.pv_array import PVArray
 from src.utils import read_his_data_csv
 from src.common import StepResult, History
 from src.func import *
-import logging
+from src.logger import *
 
 G_MAX = 1200
 T_MAX = 60
@@ -299,7 +299,7 @@ class PVEnv(PVEnvBase):
         logging.info(f"RL V_ MAPE={PVArray.mppt_mape(v_po, self.history.v)}")
         print(f"RL P_  Efficiency={PVArray.mppt_eff(p_po, self.history.p)}")
         print(f"RL V_ MAE={PVArray.mppt_mae(v_po, self.history.v)}")
-        print(f"RL V_ MAPE={PVArray.mppt_mape(v_po, self.history.v)}")
+        print(f"total reward ={np.sum(self.history.reward)}")
 
     def _add_history(self, p, v, v_pv, i, dp_act, p_mppt, rwd) -> None:
         self.history.p.append(p)
